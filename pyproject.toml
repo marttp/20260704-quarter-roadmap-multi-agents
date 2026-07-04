@@ -1,0 +1,55 @@
+[project]
+name = "quarter-roadmap-copilot"
+version = "0.1.0"
+description = "Quarter Roadmap Co-Pilot — two-agent ADK 2.0 system that helps prioritize/deprioritize a messy quarterly roadmap. Capstone project for the 5-Day AI Agents Intensive Vibe Coding Course with Google."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = { file = "LICENSE" }
+authors = [{ name = "TP Coder" }]
+keywords = ["adk", "agents", "antigravity", "google-cloud", "vibe-coding"]
+
+# Core runtime — ADK 2.0 graph Workflow API (see codelabs 06, 07, 10).
+dependencies = [
+    "google-adk>=2.0.0a0,<3.0.0",
+    "pydantic>=2.6,<3.0",
+]
+
+[project.optional-dependencies]
+# FastAPI Home Hub dashboard (codelab 09 pattern).
+web = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "jinja2>=3.1",
+]
+# Security tooling — Semgrep pre-commit gate (codelab 08).
+security = [
+    "pre-commit>=3.7",
+    "pre-commit-hooks>=4.6",
+    "semgrep>=1.50",
+]
+# Tests.
+dev = [
+    "pytest>=8.0",
+]
+# Convenience aggregate.
+all = [
+    "quarter-roadmap-copilot[web,security,dev]",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app", "mcp_server"]
+
+# --- pytest ---
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra -q"
+
+# --- uv ---
+# Pin the interpreter to a stable patch line; uv will fetch it if missing.
+[tool.uv]
+required-version = ">=0.4.0"
