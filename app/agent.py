@@ -29,7 +29,7 @@ from google.adk.agents import LlmAgent
 from google.adk.agents.context import Context
 from google.adk.apps.app import App
 from google.adk.events.event import Event
-from google.adk.workflow import Edge, Workflow, node
+from google.adk.workflow import START, Edge, Workflow, node
 
 from app.models import (
     AgentPosition,
@@ -262,14 +262,13 @@ def _positions_by_item(raw: Any) -> Dict[str, Dict[str, Any]]:
 root_agent = Workflow(
     name="quarter_roadmap_review",
     edges=[
-        *Edge.chain(
-            "START",
-            load_planning_state_node,
-            planning_agent,
-            build_stakeholder_input_node,
-            stakeholder_agent,
-            summarize_node,
-        ),
+        # Linear chain expressed as (from, to) tuples — ADK 2.0 GA accepts this
+        # EdgeItem form. (The codelab-06 `Edge.chain(...)` helper is not in the GA API.)
+        (START, load_planning_state_node),
+        (load_planning_state_node, planning_agent),
+        (planning_agent, build_stakeholder_input_node),
+        (build_stakeholder_input_node, stakeholder_agent),
+        (stakeholder_agent, summarize_node),
     ],
 )
 
