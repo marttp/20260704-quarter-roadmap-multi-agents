@@ -15,11 +15,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# FastAPI Home Hub dashboard (codelab 09 pattern).
+# FastAPI Home Hub dashboard (codelab 09 pattern) + Agent Runtime REST client.
 web = [
     "fastapi>=0.110",
     "uvicorn[standard]>=0.27",
     "jinja2>=3.1",
+    "google-auth>=2.30",
+    "requests>=2.31",
 ]
 # Security tooling — Semgrep pre-commit gate (codelab 08).
 security = [

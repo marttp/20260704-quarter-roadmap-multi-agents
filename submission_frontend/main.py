@@ -20,6 +20,11 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.tools import load_planning_state
+from submission_frontend.agent_runtime import (
+    agent_runtime_is_configured,
+    call_agent_runtime,
+    extract_briefing,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 SPA_DIR = BASE_DIR / "static" / "spa"           # Vite build output (frontend/)
@@ -59,7 +64,34 @@ def api_state():
 @app.get("/health")
 def health():
     """Liveness probe for Cloud Run (codelab 09 deploy pattern)."""
-    return {"status": "ok", "app": app.title, "spa_built": SPA_INDEX.exists()}
+    return {
+        "status": "ok",
+        "app": app.title,
+        "spa_built": SPA_INDEX.exists(),
+        "agent_runtime_configured": agent_runtime_is_configured(),
+    }
+
+
+@app.post("/api/review")
+def api_review(prompt: str = "Review the Q3 plan and surface both agents' positions."):
+    """Run the agent review.
+
+    - If `AGENT_RUNTIME_ID` + `GOOGLE_CLOUD_PROJECT` are set (post-deploy), call
+      Agent Runtime's :query endpoint and return the live PlanningBriefing.
+    - Otherwise, fall back to the synthetic planning state (both agents'
+      positions are read from the dataset) so local dev works pre-deploy.
+    """
+    if agent_runtime_is_configured():
+        try:
+            raw = call_agent_runtime(prompt)
+            briefing = extract_briefing(raw)
+            if briefing is not None:
+                return {"mode": "live", "briefing": briefing, "raw": raw}
+            return {"mode": "live_unparsed", "raw": raw, "note": "Agent responded but briefing shape was unrecognized."}
+        except Exception as exc:  # noqa: BLE001 — surface the failure to the UI
+            return {"mode": "live_error", "error": str(exc)}
+    # Synthetic fallback: the dataset already encodes both agents' positions.
+    return {"mode": "synthetic", "state": _build_view_model()}
 
 
 @app.get("/")
