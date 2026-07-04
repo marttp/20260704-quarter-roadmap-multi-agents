@@ -1,0 +1,281 @@
+"""ADK 2.0 graph Workflow: Stakeholder Agent + Planning Agent review a messy quarterly roadmap.
+
+Scenario (see data/README.md): PromptJang's Q3 plan over-runs the Eng initiative budget by 260h.
+Four items are flagged `decision_required`. Two agents with opposing mandates debate each;
+the human makes the final call in the UI.
+
+Graph flow:
+    START
+      -> load_planning_state_node        (reads data/*.json, redacts PII, formats context)
+      -> planning_agent                  (LlmAgent, Eng stance, emits AgentPositionsOutput)
+      -> build_stakeholder_input_node    (combines context + Eng positions for the next agent)
+      -> stakeholder_agent               (LlmAgent, Product stance, emits AgentPositionsOutput)
+      -> summarize_node                  (combines both into a PlanningBriefing for the UI)
+      -> END
+
+This is multi-agent (rubric: 'Agent / Multi-agent system (ADK) — Code'). The planning_agent
+emits first; the stakeholder_agent sees those positions before responding — a 1-turn A2A loop.
+Both outputs end at a human Approve gate in the dashboard; nothing auto-commits.
+
+Built on the Agent Development Kit 2.0 graph Workflow API (codelab 06 pattern).
+"""
+
+from __future__ import annotations
+
+import json
+from typing import Any, Dict, List
+
+from google.adk.agents.context import Context
+from google.adk.apps.app import App
+from google.adk.events.event import Event
+from google.adk.workflow import Edge, Workflow
+from google.adk.workflow.agents.llm_agent import LlmAgent
+from google.adk.workflow.node import node
+
+from app.models import (
+    AgentPosition,
+    AgentPositionsOutput,
+    CapacityEnvelope,
+    ItemReview,
+    PlanningBriefing,
+)
+from app.tools import load_planning_state, redact_confidential
+
+# Default model used across both LlmAgents. Same id as codelabs 06/07/08.
+DEFAULT_MODEL = "gemini-3.1-flash-lite"
+
+
+# --------------------------------------------------------------------------- #
+# Function nodes (deterministic Python; no LLM cost).
+# Each takes (ctx, node_input), reads/writes ctx.state, and yields Event(...).
+# --------------------------------------------------------------------------- #
+
+
+@node
+def load_planning_state_node(ctx: Context, node_input: Any):
+    """Read the synthetic dataset, redact PII, format the agent context, stash in state.
+
+    Security: `redact_confidential` runs HERE, before any downstream LlmAgent sees the text.
+    """
+    state = load_planning_state()
+    context_json = redact_confidential(_format_planning_context(state))
+    # Stash both the slim agent context (string) and the raw state (dict) for downstream nodes.
+    yield Event(
+        data=context_json,
+        state={"planning_context": context_json, "raw_state": state},
+    )
+
+
+def _format_planning_context(state: Dict[str, Any]) -> str:
+    """Build a compact JSON string the LlmAgents read as their 'user message'.
+
+    Only the decision_required items are included — agents don't see auto-prioritized items,
+    keeping token cost down and focus narrow. Item positions/reasons are stripped so agents
+    form their own rather than parroting the synthetic ones.
+    """
+    planning = state["planning"]
+    decision_ids = set(planning.get("decision_required", []))
+    all_items = (
+        planning.get("backlog_from_past_quarters", [])
+        + planning.get("proposed_for_q3", [])
+    )
+    payload = {
+        "quarter": planning.get("quarter"),
+        "capacity_envelope": planning.get("capacity_envelope"),
+        "decision_required": planning.get("decision_required", []),
+        "items": [_slim_item(it) for it in all_items if it.get("id") in decision_ids],
+        "history_averages": state["history"]["utilization"]["quarter_averages"],
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+def _slim_item(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Keep only the fields the agents need to reason (drop synthetic stance fields)."""
+    return {
+        "id": item.get("id"),
+        "name": item.get("name"),
+        "origin": item.get("origin"),
+        "incoming_state": item.get("incoming_state"),
+        "owner_team": item.get("owner_team"),
+        "effort_hours_remaining": item.get("effort_hours_remaining"),
+        "decision_type": item.get("decision_type"),
+        "feedback": item.get("feedback", []),
+        "blocker": item.get("blocker"),
+    }
+
+
+# --------------------------------------------------------------------------- #
+# LlmAgents.
+# --------------------------------------------------------------------------- #
+
+
+planning_agent = LlmAgent(
+    name="planning_agent",
+    model=DEFAULT_MODEL,
+    instruction=(
+        "You are the ENGINEERING PLANNING AGENT for PromptJang's quarterly roadmap review.\n"
+        "Your mandate: protect sustainable utilization (target <=100% of weekly capacity).\n\n"
+        "You receive the Q3 planning state as JSON: capacity envelope, decision_required items, "
+        "their incoming_state, feedback, and Q1/Q2 utilization history.\n\n"
+        "For EACH decision_required item, emit one AgentPosition. Position options: "
+        "prioritize, deprioritize, unblock, cut, defer_partial, auto_keep, auto_prioritize.\n"
+        "Your reason MUST cite one of:\n"
+        "  - the Q1/Q2 utilization history (e.g. 'Ingestion peaked at 122% in Q1 week 8'),\n"
+        "  - the item's incoming_state (e.g. 'blocked on Design'), or\n"
+        "  - the capacity envelope (e.g. 'over budget by 260h').\n"
+        "One sentence per reason. No preamble."
+    ),
+    output_key="planning_positions",
+    output_schema=AgentPositionsOutput,
+)
+
+
+@node
+def build_stakeholder_input_node(ctx: Context, node_input: Any):
+    """Combine the redacted planning context with Eng's positions so the Stakeholder sees both.
+
+    This is the A2A seam: the Product agent reasons *in response to* the Eng agent's positions,
+    not in isolation.
+    """
+    context_json = ctx.state.get("planning_context", "")
+    planning_positions = ctx.state.get("planning_positions", {})
+    combined = {
+        "planning_context": json.loads(context_json) if context_json else {},
+        "planning_agent_positions": _normalize_positions(planning_positions),
+    }
+    yield Event(data=json.dumps(combined, ensure_ascii=False, indent=2))
+
+
+stakeholder_agent = LlmAgent(
+    name="stakeholder_agent",
+    model=DEFAULT_MODEL,
+    instruction=(
+        "You are the PRODUCT STAKEHOLDER AGENT — the 'other department' in this review.\n"
+        "Your mandate: maximize customer value and protect revenue commitments.\n\n"
+        "You receive the planning state AND the Eng Planning Agent's positions. For EACH "
+        "decision_required item, emit one AgentPosition. You may AGREE or DISAGREE with Eng; "
+        "when you disagree, cite customer feedback, market signals, or revenue risk from the "
+        "planning_context.\n"
+        "Position options: prioritize, deprioritize, unblock, cut, defer_partial, auto_keep, "
+        "auto_prioritize.\n"
+        "One sentence per reason. No preamble."
+    ),
+    output_key="stakeholder_positions",
+    output_schema=AgentPositionsOutput,
+)
+
+
+# --------------------------------------------------------------------------- #
+# Final summarize node -> PlanningBriefing for the UI.
+# --------------------------------------------------------------------------- #
+
+
+@node
+def summarize_node(ctx: Context, node_input: Any):
+    """Combine both agents' positions into a PlanningBriefing the dashboard renders.
+
+    Counts consensus vs dispute so the UI can badge items that need a human decision.
+    """
+    state = ctx.state.get("raw_state", {})
+    planning = state.get("planning", {})
+
+    planning_positions = _positions_by_item(ctx.state.get("planning_positions"))
+    stakeholder_positions = _positions_by_item(ctx.state.get("stakeholder_positions"))
+
+    # Build a lookup of decision_type per item.
+    all_items = (
+        planning.get("backlog_from_past_quarters", [])
+        + planning.get("proposed_for_q3", [])
+    )
+    decision_type_by_id = {
+        it.get("id"): it.get("decision_type", "auto_keep") for it in all_items
+    }
+
+    reviews: List[ItemReview] = []
+    consensus = 0
+    dispute = 0
+    for item_id in planning.get("decision_required", []):
+        p = planning_positions.get(item_id)
+        s = stakeholder_positions.get(item_id)
+        if not p or not s:
+            continue
+        reviews.append(
+            ItemReview(
+                item_id=item_id,
+                decision_type=decision_type_by_id.get(item_id, "auto_keep"),
+                stakeholder_position=AgentPosition(**s),
+                planning_position=AgentPosition(**p),
+            )
+        )
+        if p.get("position") == s.get("position"):
+            consensus += 1
+        else:
+            dispute += 1
+
+    briefing = PlanningBriefing(
+        quarter=planning.get("quarter", "Q3-2026"),
+        capacity=CapacityEnvelope(**planning.get("capacity_envelope", {})),
+        decision_required=planning.get("decision_required", []),
+        reviews=reviews,
+        consensus_count=consensus,
+        dispute_count=dispute,
+    )
+    yield Event(data=briefing.model_dump_json())
+
+
+# --------------------------------------------------------------------------- #
+# Helpers: normalize the various forms an AgentPositionsOutput can take in state.
+# ADK may store it as a pydantic instance, a dict, or a JSON string depending on version,
+# so these helpers accept all three.
+# --------------------------------------------------------------------------- #
+
+
+def _normalize_positions(raw: Any) -> List[Dict[str, Any]]:
+    """Return a list of {item_id, position, reason} dicts from any input shape."""
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        raw = json.loads(raw)
+    if isinstance(raw, dict):
+        inner = raw.get("positions", raw)
+        if isinstance(inner, dict):
+            inner = [inner]
+        return [dict(p) for p in inner]
+    if isinstance(raw, list):
+        return [dict(p) for p in raw]
+    # Pydantic model instance.
+    if hasattr(raw, "positions"):
+        return [p.model_dump() if hasattr(p, "model_dump") else dict(p) for p in raw.positions]
+    return []
+
+
+def _positions_by_item(raw: Any) -> Dict[str, Dict[str, Any]]:
+    """Index positions by item_id for O(1) lookup in summarize_node."""
+    return {p.get("item_id"): p for p in _normalize_positions(raw) if p.get("item_id")}
+
+
+# --------------------------------------------------------------------------- #
+# Root workflow + App wrapper (codelab 06 pattern).
+# agents-cli playground / agents-cli run / agents-cli deploy all discover this `app`.
+# --------------------------------------------------------------------------- #
+
+
+root_agent = Workflow(
+    name="quarter_roadmap_review",
+    edges=[
+        *Edge.chain(
+            "START",
+            load_planning_state_node,
+            planning_agent,
+            build_stakeholder_input_node,
+            stakeholder_agent,
+            summarize_node,
+        ),
+    ],
+)
+
+
+app = App(
+    name="quarter_roadmap_copilot",
+    root_agent=root_agent,
+)
