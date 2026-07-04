@@ -29,8 +29,7 @@ from google.adk.agents import LlmAgent
 from google.adk.agents.context import Context
 from google.adk.apps.app import App
 from google.adk.events.event import Event
-from google.adk.workflow import Edge, Workflow
-from google.adk.workflow.node import node
+from google.adk.workflow import Edge, Workflow, node
 
 from app.models import (
     AgentPosition,
