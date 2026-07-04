@@ -1,0 +1,79 @@
+{
+  "company": {
+    "name": "PromptJang",
+    "product": "Webhook reliability & observability platform (send, track, debug webhooks; 18 REST endpoints; event state machine).",
+    "site": "https://promptjang.net/",
+    "docs": "https://docs.promptjang.net/",
+    "planning_quarter": "Q3-2026",
+    "weeks_per_quarter": 13,
+    "fiscal_year_start": "2026-01-01"
+  },
+  "teams": [
+    {
+      "id": "product",
+      "name": "Product",
+      "function": "Product",
+      "weekly_capacity_hours": 120,
+      "mission": "Owns what gets built — customer problems, roadmap priorities, success metrics."
+    },
+    {
+      "id": "eng-ingestion",
+      "name": "Engineering / Ingestion",
+      "function": "Engineering",
+      "weekly_capacity_hours": 120,
+      "mission": "Event intake — rate limiting, payload validation, regional ingestion."
+    },
+    {
+      "id": "eng-delivery",
+      "name": "Engineering / Delivery",
+      "function": "Engineering",
+      "weekly_capacity_hours": 120,
+      "mission": "Webhook delivery — retry engine, signature verification, circuit breakers."
+    },
+    {
+      "id": "eng-platform",
+      "name": "Engineering / Platform",
+      "function": "Engineering",
+      "weekly_capacity_hours": 120,
+      "mission": "REST API + dashboard — events/endpoints/API keys, search, replay UI, stats, billing."
+    },
+    {
+      "id": "design",
+      "name": "Design",
+      "function": "Design",
+      "weekly_capacity_hours": 40,
+      "mission": "Shared design resource across Product and all Eng sub-teams."
+    }
+  ],
+  "employees": [
+    { "id": "priya-chen",     "name": "Priya Chen (mock)",      "role": "Product Manager",         "team": "product",       "weekly_capacity_hours": 40, "skills": ["roadmap", "customer-research", "kr-definition"] },
+    { "id": "marcus-okafor",  "name": "Marcus Okafor (mock)",   "role": "Senior PM",               "team": "product",       "weekly_capacity_hours": 40, "skills": ["pricing", "billing", "api-design"] },
+    { "id": "lena-vargas",    "name": "Lena Vargas (mock)",     "role": "Product Designer",        "team": "product",       "weekly_capacity_hours": 40, "skills": ["ux", "dashboard", "design-system"] },
+
+    { "id": "diego-santos",   "name": "Diego Santos (mock)",    "role": "Tech Lead, Ingestion",    "team": "eng-ingestion", "weekly_capacity_hours": 40, "skills": ["rate-limiting", "kafka", "schema-validation"] },
+    { "id": "aisha-rahman",   "name": "Aisha Rahman (mock)",    "role": "Backend Engineer",        "team": "eng-ingestion", "weekly_capacity_hours": 40, "skills": ["go", "streaming", "regional-routing"] },
+    { "id": "tomas-pereira",  "name": "Tomás Pereira (mock)",   "role": "Backend Engineer",        "team": "eng-ingestion", "weekly_capacity_hours": 40, "skills": ["go", "schema", "observability"] },
+
+    { "id": "hana-kobayashi", "name": "Hana Kobayashi (mock)",  "role": "Tech Lead, Delivery",     "team": "eng-delivery",  "weekly_capacity_hours": 40, "skills": ["retry-engine", "signatures", "circuit-breakers"] },
+    { "id": "erik-lindqvist", "name": "Erik Lindqvist (mock)",  "role": "Senior Engineer",         "team": "eng-delivery",  "weekly_capacity_hours": 40, "skills": ["replay", "hmac", "backpressure"] },
+    { "id": "nia-oyelaran",   "name": "Nia Oyelaran (mock)",    "role": "Engineer",                "team": "eng-delivery",  "weekly_capacity_hours": 40, "skills": ["go", "queues", "latency"] },
+
+    { "id": "ravi-deshpande", "name": "Ravi Deshpande (mock)",  "role": "Tech Lead, Platform",     "team": "eng-platform",  "weekly_capacity_hours": 40, "skills": ["rest-api", "authz", "dashboard"] },
+    { "id": "sofia-marchetti","name": "Sofia Marchetti (mock)", "role": "Full-stack Engineer",     "team": "eng-platform",  "weekly_capacity_hours": 40, "skills": ["react", "node", "search"] },
+    { "id": "jonas-bauer",    "name": "Jonas Bauer (mock)",     "role": "Backend Engineer",        "team": "eng-platform",  "weekly_capacity_hours": 40, "skills": ["java", "billing", "analytics"] }
+  ],
+  "function_agents": [
+    {
+      "id": "product_agent",
+      "represents_team": "product",
+      "a2a_counterpart": "eng_agent",
+      "stance": "Maximize customer value and ship the prioritized roadmap. Resists scope cuts unless capacity evidence is concrete."
+    },
+    {
+      "id": "eng_agent",
+      "represents_team": "engineering",
+      "a2a_counterpart": "product_agent",
+      "stance": "Protect sustainable utilization (target <=100%). Cites Q1/Q2 historical utilization to push back on over-commitment. Will accept scope if Product defers a competing initiative."
+    }
+  ]
+}
