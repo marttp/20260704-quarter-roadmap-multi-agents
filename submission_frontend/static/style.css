@@ -1,0 +1,150 @@
+/* Quarter Roadmap Co-Pilot — dashboard styling.
+   Dark glassmorphic theme (codelab 09 styling pattern). */
+
+:root {
+  --bg: #0b0f1a;
+  --panel: rgba(255, 255, 255, 0.04);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --text: #e6e9ef;
+  --muted: #8a93a6;
+  --accent: #6ea8ff;
+  --danger: #ff6b6b;
+  --warn: #ffc857;
+  --ok: #4ade80;
+  --stakeholder: #b08cff;
+  --planning: #6ea8ff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background:
+    radial-gradient(800px 500px at 10% -10%, rgba(110, 168, 255, 0.10), transparent),
+    radial-gradient(700px 400px at 110% 10%, rgba(176, 140, 255, 0.08), transparent),
+    var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+header.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--panel-border);
+  backdrop-filter: blur(12px);
+}
+
+header.top h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: 0.3px; }
+header.top .meta { color: var(--muted); font-size: 13px; }
+
+main { padding: 24px 32px 64px; }
+
+.banner {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 18px;
+  border: 1px solid rgba(255, 200, 87, 0.35);
+  background: rgba(255, 200, 87, 0.06);
+  border-radius: 12px;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+.banner .delta { font-weight: 700; color: var(--warn); }
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+
+.column {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 18px;
+  backdrop-filter: blur(8px);
+  min-height: 200px;
+}
+.column h2 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.column .sub { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+
+.card {
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.card.decision { border-color: rgba(255, 200, 87, 0.35); }
+.card .name { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.card .meta-row { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-right: 6px;
+}
+.badge.state { background: rgba(110, 168, 255, 0.12); color: var(--accent); }
+.badge.decision { background: rgba(255, 200, 87, 0.15); color: var(--warn); }
+.badge.team { background: rgba(255, 255, 255, 0.06); color: var(--muted); }
+
+.positions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--panel-border);
+}
+.position { font-size: 12px; }
+.position .label { font-weight: 600; }
+.position.stakeholder .label { color: var(--stakeholder); }
+.position.planning .label { color: var(--planning); }
+.position .reason { color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+.actions { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+button {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+button:hover { background: rgba(255, 255, 255, 0.08); }
+button.primary { border-color: rgba(74, 222, 128, 0.4); color: var(--ok); }
+button.danger { border-color: rgba(255, 107, 107, 0.4); color: var(--danger); }
+
+.history {
+  margin-top: 32px;
+  padding: 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.history h3 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+.history table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.history th, .history td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--panel-border); }
+.history th { color: var(--muted); font-weight: 500; font-size: 12px; }
+.history td.high { color: var(--danger); font-weight: 600; }
+.history td.healthy { color: var(--ok); }
+
+footer { color: var(--muted); font-size: 12px; padding: 24px 32px; border-top: 1px solid var(--panel-border); }
