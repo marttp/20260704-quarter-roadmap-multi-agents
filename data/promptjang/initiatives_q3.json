@@ -1,0 +1,116 @@
+{
+  "_comment": "Q3-2026 planning input — SIMPLIFIED for the prioritize/deprioritize scenario. Two pools: (a) BACKLOG carried from past quarters that wasn't fully covered, (b) NEW proposals for Q3. Items flagged decision_required=true are the ones the two agents (Stakeholder=Product, Planning=Eng) debate. The whole list over-runs capacity, so at least one item must be deprioritized — that's the demo.",
+  "quarter": "Q3-2026",
+  "planning_status": "draft_for_agent_review",
+  "capacity_envelope": {
+    "eng_total_capacity_hours_q3": 4680,
+    "_capacity_note": "3 Eng sub-teams (Ingestion, Delivery, Platform) × 13 weeks × 120h/week = 4680h available.",
+    "effort_if_all_prioritized_hours": 5180,
+    "delta_hours": 500,
+    "delta_verdict": "Over capacity by ~500h. At least one decision_required item must be deprioritized or deferred."
+  },
+
+  "backlog_from_past_quarters": [
+    {
+      "id": "BACKLOG-01",
+      "name": "Delivery Circuit Breakers",
+      "origin": "Q2-DLV-03 (cut in week 4 to protect utilization)",
+      "prior_proposals": ["Q2-DLV-03"],
+      "owner_team": "eng-delivery",
+      "customer_champion": "marcus-okafor",
+      "effort_hours": 240,
+      "customer_value": "Reliability — auto-isolate failing endpoints, reduces noise for customers receiving webhooks.",
+      "effort_risk": "Delivery team is also doing Webhook Signatures v2 (Q3-DLV-01). Stacking both risks repeating the Q1 118% peak.",
+      "history_note": "Cut twice already (once in Q1 scope review, once in Q2 week 4). Re-proposed for Q3.",
+      "stakeholder_position": "prioritize",
+      "stakeholder_reason": "We've cut this twice; a major customer filed a reliability complaint last month — shipping this protects renewals.",
+      "planning_position": "deprioritize",
+      "planning_reason": "Delivery capacity is committed to Signatures v2 (P0 revenue). Recommend deferring Circuit Breakers to Q4 or scoping to per-tenant only.",
+      "decision_required": true
+    },
+    {
+      "id": "BACKLOG-02",
+      "name": "Ingestion Tech-Debt Remnant (2 of 5 footguns)",
+      "origin": "Q2-ING-01 (shipped, but closed 3 of 5 known footguns)",
+      "prior_proposals": ["Q2-ING-01"],
+      "owner_team": "eng-ingestion",
+      "customer_champion": null,
+      "effort_hours": 160,
+      "customer_value": "Indirect — reduces the chance of a repeat of the Q1 rate-limiter incident. No direct revenue line.",
+      "effort_risk": "Internal work; safe and well-scoped. No customer-facing deadline.",
+      "history_note": "Q2-ING-01 paid down 3 of 5 footguns; 2 remain. These are the ones that compounded into the Q1 over-commitment.",
+      "stakeholder_position": "deprioritize",
+      "stakeholder_reason": "No customer asks for tech debt. Revenue is on the Q3 proposals — fund those first.",
+      "planning_position": "prioritize",
+      "planning_reason": "These two footguns are exactly what caused the Q1 122% peak. If we don't clear them before adding Regional Ingestion EU, we repeat Q1.",
+      "decision_required": true
+    }
+  ],
+
+  "proposed_for_q3": [
+    {
+      "id": "Q3-ING-01",
+      "name": "Regional Ingestion (EU)",
+      "origin": "Q3 new proposal",
+      "owner_team": "eng-ingestion",
+      "customer_champion": "priya-chen",
+      "effort_hours": 600,
+      "customer_value": "P0 — data-residency blocker for 3 EU enterprise prospects (FY27 pipeline).",
+      "effort_risk": "600h on the Ingestion team that still carries the BACKLOG-02 debt remnant. Would push Ingestion to ~115%.",
+      "stakeholder_position": "prioritize",
+      "stakeholder_reason": "P0 revenue; prospect commitment date is end of Q3.",
+      "planning_position": "defer_partial",
+      "planning_reason": "Cannot safely take all of it alongside the debt remnant. Propose: ship EU ingest endpoint in Q3 (300h), defer regional routing rules + Frankfurt PoP to Q4.",
+      "decision_required": true
+    },
+    {
+      "id": "Q3-DLV-01",
+      "name": "Webhook Signatures v2",
+      "origin": "Q3 new proposal",
+      "owner_team": "eng-delivery",
+      "customer_champion": "marcus-okafor",
+      "effort_hours": 560,
+      "customer_value": "P0 — enterprise security review requires it before contract signature.",
+      "effort_risk": "560h. The core of Delivery's Q3.",
+      "stakeholder_position": "prioritize",
+      "stakeholder_reason": "P0; signed contract on completion.",
+      "planning_position": "prioritize",
+      "planning_reason": "Agreed P0. The only caveat is it locks out BACKLOG-01 (Circuit Breakers) — see that item.",
+      "decision_required": false
+    },
+    {
+      "id": "Q3-PLT-01",
+      "name": "Replay 2.0 UI",
+      "origin": "Q3 new proposal",
+      "owner_team": "eng-platform",
+      "customer_champion": "priya-chen",
+      "effort_hours": 440,
+      "customer_value": "P1 — top customer-requested UX.",
+      "effort_risk": "Blocked on Design (shared 40h/wk resource) for the visual builder.",
+      "stakeholder_position": "prioritize",
+      "stakeholder_reason": "Top ask in the customer advisory board.",
+      "planning_position": "prioritize",
+      "planning_reason": "Shippable, well-scoped, on the healthy Platform band.",
+      "decision_required": false
+    },
+    {
+      "id": "Q3-PLT-04",
+      "name": "Billing: Usage-based Tiers",
+      "origin": "Q3 new proposal",
+      "owner_team": "eng-platform",
+      "customer_champion": "marcus-okafor",
+      "effort_hours": 420,
+      "customer_value": "P0 — revenue model change for FY27; finance-mandated.",
+      "effort_risk": "420h. Platform is getting crowded (Replay UI, Search, Log Explorer also proposed).",
+      "stakeholder_position": "prioritize",
+      "stakeholder_reason": "Mandated by finance for FY27 model.",
+      "planning_position": "prioritize",
+      "planning_reason": "Agreed P0. Will require de-scoping one of the lower Platform items (Search Upgrade / Log Explorer) to make room.",
+      "decision_required": false
+    }
+  ],
+
+  "decision_required": ["BACKLOG-01", "BACKLOG-02", "Q3-ING-01"],
+
+  "_demo_flow_note": "The UI surfaces these 4 + 2 = 6 items across two columns (Backlog | Proposed for Q3). The 3 decision_required items get an explicit Prioritize / Deprioritize button. Clicking it triggers the two agents to emit their 1-line take; the user confirms the final call, which moves the item into the Q3 Committed column or back to Backlog. The capacity envelope (over by 500h) is the forcing function — you literally cannot commit everything."
+}
