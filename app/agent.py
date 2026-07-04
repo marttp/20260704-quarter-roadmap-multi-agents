@@ -25,11 +25,11 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List
 
+from google.adk.agents import LlmAgent
 from google.adk.agents.context import Context
 from google.adk.apps.app import App
 from google.adk.events.event import Event
 from google.adk.workflow import Edge, Workflow
-from google.adk.workflow.agents.llm_agent import LlmAgent
 from google.adk.workflow.node import node
 
 from app.models import (
