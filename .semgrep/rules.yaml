@@ -1,0 +1,12 @@
+# .semgrep/rules.yaml
+# Verbatim from codelab 08 (https://codelabs.developers.google.com/secure-agentic-coding).
+# Default `semgrep --config auto` does not flag mock keys, so we use a direct regex scan
+# for the Google API key prefix and fail loudly.
+
+rules:
+  - id: detect-hardcoded-google-api-key
+    pattern-regex: 'AIzaSy[A-Za-z0-9_\-]*'
+    message: "Security Issue: Hardcoded Google API key prefix detected."
+    languages:
+      - python
+    severity: ERROR

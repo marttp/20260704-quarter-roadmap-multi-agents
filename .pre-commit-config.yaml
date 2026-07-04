@@ -1,0 +1,23 @@
+# .pre-commit-config.yaml
+# Adapted from codelab 08 (https://codelabs.developers.google.com/secure-agentic-coding).
+# This project's Git root == project root (no `shopping-assistant/` subfolder), so the
+# Semgrep config path is `.semgrep/rules.yaml` (relative to repo root).
+
+repos:
+  - repo: local
+    hooks:
+      - id: end-of-file-fixer
+        name: End of File Fixer
+        entry: end-of-file-fixer
+        language: system
+        types: [file]
+      - id: trailing-whitespace
+        name: Trailing Whitespace
+        entry: trailing-whitespace-fixer
+        language: system
+        types: [file]
+      - id: semgrep
+        name: Semgrep Security Scan
+        entry: semgrep --error --config .semgrep/rules.yaml
+        language: system
+        types: [python]
