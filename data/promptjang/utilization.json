@@ -1,0 +1,44 @@
+{
+  "_comment": "Synthetic per-team weekly utilization as % of weekly_capacity_hours. >100% means overtime/over-commitment. This history is what the Eng Agent cites in Q3 planning to push back on over-commitment.",
+  "unit": "percent_of_weekly_capacity",
+  "scope": ["product", "eng-ingestion", "eng-delivery", "eng-platform", "design"],
+  "history": [
+    { "quarter": "Q1-2026", "week":  1, "utilization": { "product": 75, "eng-ingestion":  90, "eng-delivery":  90, "eng-platform": 85, "design": 80 } },
+    { "quarter": "Q1-2026", "week":  2, "utilization": { "product": 80, "eng-ingestion":  95, "eng-delivery":  95, "eng-platform": 88, "design": 82 } },
+    { "quarter": "Q1-2026", "week":  3, "utilization": { "product": 82, "eng-ingestion": 100, "eng-delivery": 100, "eng-platform": 90, "design": 85 } },
+    { "quarter": "Q1-2026", "week":  4, "utilization": { "product": 85, "eng-ingestion": 105, "eng-delivery": 105, "eng-platform": 92, "design": 88 } },
+    { "quarter": "Q1-2026", "week":  5, "utilization": { "product": 88, "eng-ingestion": 110, "eng-delivery": 110, "eng-platform": 95, "design": 90 } },
+    { "quarter": "Q1-2026", "week":  6, "utilization": { "product": 90, "eng-ingestion": 115, "eng-delivery": 112, "eng-platform": 98, "design": 92 } },
+    { "quarter": "Q1-2026", "week":  7, "utilization": { "product": 92, "eng-ingestion": 120, "eng-delivery": 115, "eng-platform":100, "design": 95 } },
+    { "quarter": "Q1-2026", "week":  8, "utilization": { "product": 90, "eng-ingestion": 122, "eng-delivery": 118, "eng-platform":102, "design": 92 } },
+    { "quarter": "Q1-2026", "week":  9, "utilization": { "product": 88, "eng-ingestion": 120, "eng-delivery": 118, "eng-platform":100, "design": 90 } },
+    { "quarter": "Q1-2026", "week": 10, "utilization": { "product": 85, "eng-ingestion": 118, "eng-delivery": 115, "eng-platform": 98, "design": 88 } },
+    { "quarter": "Q1-2026", "week": 11, "utilization": { "product": 82, "eng-ingestion": 115, "eng-delivery": 110, "eng-platform": 95, "design": 85 } },
+    { "quarter": "Q1-2026", "week": 12, "utilization": { "product": 80, "eng-ingestion": 110, "eng-delivery": 105, "eng-platform": 92, "design": 82 } },
+    { "quarter": "Q1-2026", "week": 13, "utilization": { "product": 78, "eng-ingestion": 105, "eng-delivery": 100, "eng-platform": 88, "design": 80 } },
+
+    { "quarter": "Q2-2026", "week":  1, "utilization": { "product": 82, "eng-ingestion":  92, "eng-delivery":  88, "eng-platform": 90, "design": 88 } },
+    { "quarter": "Q2-2026", "week":  2, "utilization": { "product": 85, "eng-ingestion":  95, "eng-delivery":  90, "eng-platform": 92, "design": 90 } },
+    { "quarter": "Q2-2026", "week":  3, "utilization": { "product": 88, "eng-ingestion":  98, "eng-delivery":  92, "eng-platform": 94, "design": 92 } },
+    { "quarter": "Q2-2026", "week":  4, "utilization": { "product": 90, "eng-ingestion": 100, "eng-delivery":  94, "eng-platform": 96, "design": 92 } },
+    { "quarter": "Q2-2026", "week":  5, "utilization": { "product": 88, "eng-ingestion":  98, "eng-delivery":  92, "eng-platform": 95, "design": 90 } },
+    { "quarter": "Q2-2026", "week":  6, "utilization": { "product": 86, "eng-ingestion":  96, "eng-delivery":  90, "eng-platform": 94, "design": 88 } },
+    { "quarter": "Q2-2026", "week":  7, "utilization": { "product": 88, "eng-ingestion":  95, "eng-delivery":  88, "eng-platform": 96, "design": 90 } },
+    { "quarter": "Q2-2026", "week":  8, "utilization": { "product": 90, "eng-ingestion":  96, "eng-delivery":  90, "eng-platform": 98, "design": 92 } },
+    { "quarter": "Q2-2026", "week":  9, "utilization": { "product": 88, "eng-ingestion":  98, "eng-delivery":  92, "eng-platform": 96, "design": 94 } },
+    { "quarter": "Q2-2026", "week": 10, "utilization": { "product": 86, "eng-ingestion": 100, "eng-delivery":  94, "eng-platform": 95, "design": 92 } },
+    { "quarter": "Q2-2026", "week": 11, "utilization": { "product": 88, "eng-ingestion":  98, "eng-delivery":  92, "eng-platform": 94, "design": 90 } },
+    { "quarter": "Q2-2026", "week": 12, "utilization": { "product": 90, "eng-ingestion":  96, "eng-delivery":  90, "eng-platform": 92, "design": 88 } },
+    { "quarter": "Q2-2026", "week": 13, "utilization": { "product": 88, "eng-ingestion":  95, "eng-delivery":  88, "eng-platform": 90, "design": 86 } }
+  ],
+  "quarter_averages": {
+    "Q1-2026": { "product": 84, "eng-ingestion": 112, "eng-delivery": 107, "eng-platform": 95, "design": 87 },
+    "Q2-2026": { "product": 88, "eng-ingestion":  97, "eng-delivery":  91, "eng-platform": 95, "design": 90 }
+  },
+  "commentary": {
+    "Q1-2026": "Engineering ran hot. Ingestion peaked at 122% in week 8 (rate-limit + schema scope grew); Delivery peaked at 118% (retry engine rewrites). Averaged >100% across both sub-teams for the quarter. Two initiatives (Signature Verification v1, API Keys & Permissions) slipped to Q2.",
+    "Q2-2026": "Rebalanced after the Q1 over-commitment. Cut 1 stretch initiative (Circuit Breakers) and carried over 2 slipped Q1 items. All three Eng sub-teams landed in the 91-97% band — healthy. Shipped everything committed including the carries; no new slips."
+  },
+  "target_utilization_band": [85, 100],
+  "_target_note": "Eng Agent treats utilization outside [85,100]% as a resource risk to raise in planning. Q1 Ingestion/Delivery and the projected Q3 load both breach this band."
+}
