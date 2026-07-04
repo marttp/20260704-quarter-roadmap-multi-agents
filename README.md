@@ -81,14 +81,24 @@ agents-cli info   # verify
 # 4. Set your Gemini API key (never commit this)
 export GEMINI_API_KEY="your_key_here"
 export GOOGLE_GENAI_USE_ENTERPRISE=FALSE
+
+# 5. Build the Vue dashboard (one-time, then after each frontend change)
+make frontend-install   # npm install in frontend/
+make frontend-build     # Vite build -> submission_frontend/static/spa/
 ```
 
 ### Run
 
 ```bash
-# Local web playground (interactive) — codelab 06 pattern
+# Backend (FastAPI on :8080) — serves /api/state, /health, and the built Vue SPA
+make dashboard
+
+# OR: Vue dev server (:5173) with HMR + hot proxy to the backend on :8080
+#     (run `make dashboard` in one terminal, `make frontend-dev` in another)
+make frontend-dev
+
+# Local ADK web playground (interactive) — codelab 06 pattern
 agents-cli playground
-# -> open the printed URL (typically http://127.0.0.1:8080/dev-ui/?app=app)
 
 # Single-shot CLI run
 agents-cli run "Review the Q3 plan and surface the decision_required items."
@@ -150,6 +160,14 @@ agents-cli deploy --project YOUR_PROJECT_ID --region us-west1
 │   ├── agent.py                   # ADK 2.0 Workflow: load -> planning -> stakeholder -> summarize
 │   ├── models.py                  # Pydantic schemas (agent I/O)
 │   └── tools.py                   # data loaders + redact_confidential
+├── frontend/                      # Vue 3 + Vite + TypeScript dashboard source
+│   ├── src/
+│   │   ├── App.vue                # three-column prioritization board
+│   │   ├── api.ts                 # typed fetch client
+│   │   ├── types.ts               # mirrors app/models.py
+│   │   └── components/{ItemCard,CapacityBanner}.vue
+│   ├── package.json
+│   └── vite.config.ts             # dev proxy /api -> :8080; build -> submission_frontend/static/spa/
 ├── mcp_server/                    # local MCP wrapping the dataset (codelab 04 pattern)
 ├── .agents/                       # Antigravity customizations (codelab 08)
 │   ├── CONTEXT.md                 # secure coding standards
@@ -158,10 +176,13 @@ agents-cli deploy --project YOUR_PROJECT_ID --region us-west1
 │   └── scripts/validate_tool_call.py
 ├── .semgrep/rules.yaml            # static analysis (codelab 08)
 ├── .pre-commit-config.yaml        # Semgrep pre-commit gate (codelab 08)
-├── submission_frontend/           # FastAPI prioritization dashboard (codelab 09 pattern)
-├── tests/                         # pytest smoke tests
-├── Makefile                       # install / playground / lint / test / deploy
-├── pyproject.toml                 # deps: google-adk>=2.0.0a0, fastapi, pre-commit, semgrep, pytest
+├── submission_frontend/           # FastAPI JSON API + SPA host (codelab 09 pattern)
+│   ├── main.py                    # /api/state, /health, serves built Vue SPA
+│   └── static/spa/                # Vite build output (git-ignored)
+├── tests/                         # pytest smoke tests (24)
+├── docs/architecture.md           # Mermaid interaction + component diagrams
+├── Makefile                       # install / playground / dashboard / frontend-* / deploy
+├── pyproject.toml                 # deps: google-adk>=2.0.0a0, fastapi, pre-commit, semgrep, fastmcp, pytest
 └── .env.example                   # GEMINI_API_KEY, GOOGLE_CLOUD_PROJECT, AGENT_RUNTIME_ID
 ```
 

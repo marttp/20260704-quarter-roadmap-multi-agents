@@ -3,6 +3,7 @@
 # Requires: uv, agents-cli (installed via `uvx google-agents-cli setup`).
 
 .PHONY: help install playground run lint test data-check dashboard \
+        frontend-install frontend-build frontend-dev frontend-typecheck \
         deploy-scaffold deploy-dry-run deploy clean
 
 GOOGLE_CLOUD_PROJECT ?= your-gcp-project-id
@@ -14,7 +15,10 @@ help:
 	@echo "  make install         - uv sync --extra all + pre-commit install"
 	@echo "  make playground      - local ADK web playground (codelab 06)"
 	@echo "  make run             - single-shot CLI run"
-	@echo "  make dashboard       - FastAPI prioritization dashboard (codelab 09)"
+	@echo "  make dashboard       - FastAPI backend on :8080 (serves Vue SPA when built)"
+	@echo "  make frontend-install- install Vue 3 dashboard deps"
+	@echo "  make frontend-build  - build the Vue SPA into submission_frontend/static/spa/"
+	@echo "  make frontend-dev    - Vite dev server on :5173 (HMR; proxies /api to :8080)"
 	@echo "  make lint            - agents-cli lint + --fix"
 	@echo "  make test            - pytest smoke tests"
 	@echo "  make data-check      - validate data/promptjang/*.json"
@@ -32,6 +36,18 @@ playground:
 
 dashboard:
 	uv run uvicorn submission_frontend.main:app --port $(DASHBOARD_PORT) --reload
+
+frontend-install:
+	cd frontend && npm install
+
+frontend-build:
+	cd frontend && npm run build
+
+frontend-dev:
+	cd frontend && npm run dev
+
+frontend-typecheck:
+	cd frontend && npm run type-check
 
 run:
 	agents-cli run "Review the Q3 plan and surface the decision_required items with both agents' positions."
