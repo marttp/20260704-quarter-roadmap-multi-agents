@@ -1,7 +1,13 @@
 # .pre-commit-config.yaml
 # Adapted from codelab 08 (https://codelabs.developers.google.com/secure-agentic-coding).
-# This project's Git root == project root (no `shopping-assistant/` subfolder), so the
-# Semgrep config path is `.semgrep/rules.yaml` (relative to repo root).
+#
+# Uses `language: system` for all hooks: the binaries (end-of-file-fixer,
+# trailing-whitespace-fixer, semgrep) are installed into .venv/bin by
+# `make install` (via the [security] extra in pyproject.toml). This makes the
+# config self-contained — no network access needed at commit time.
+#
+# Commit workflow: run `make install` first, then either `source .venv/bin/activate`
+# or use `uv run git commit ...` so the hook binaries are on PATH.
 
 repos:
   - repo: local
