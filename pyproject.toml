@@ -31,9 +31,13 @@ security = [
 dev = [
     "pytest>=8.0",
 ]
+# Local MCP server exposing the dataset to Antigravity / agents-cli (codelab 04 pattern).
+mcp = [
+    "fastmcp>=2.0",
+]
 # Convenience aggregate.
 all = [
-    "quarter-roadmap-copilot[web,security,dev]",
+    "quarter-roadmap-copilot[web,security,dev,mcp]",
 ]
 
 [build-system]
