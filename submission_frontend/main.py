@@ -50,9 +50,11 @@ def _build_view_model(quarter: str = "Q3-2026") -> Dict[str, Any]:
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request):
     """Render the prioritization board."""
+    # Starlette 1.x signature: TemplateResponse(request, name, context).
     return templates.TemplateResponse(
+        request,
         "index.html",
-        {"request": request, **_build_view_model()},
+        _build_view_model(),
     )
 
 
