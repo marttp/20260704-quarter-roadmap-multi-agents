@@ -1,0 +1,59 @@
+{
+  "_comment": "Demo events the UI sends into the agent workflow. Event names map to entry points in app/agent.py. `plan_q3` is the main demo trigger; `resource_review` is the supporting beat; `decide_priority` is the per-item decision payload fired when the user clicks Prioritize/Deprioritize in the UI.",
+  "events": [
+    {
+      "id": "EVT-PLAN-Q3",
+      "type": "plan_q3",
+      "label": "Plan Q3",
+      "description": "Load the Q3 planning input (backlog + proposals) and surface the decision_required items with both agents' opening positions.",
+      "payload": { "quarter": "Q3-2026" },
+      "agents_invoked": ["planning_agent", "stakeholder_agent"],
+      "expected_output": "A prioritization board state + per-item agent positions for BACKLOG-01, BACKLOG-02, Q3-ING-01."
+    },
+    {
+      "id": "EVT-RESOURCE-REVIEW",
+      "type": "resource_review",
+      "label": "Review Q1/Q2 resource trend",
+      "description": "Summarize the Q1/Q2 utilization history and explain why Eng is pushing back on over-commitment.",
+      "payload": { "quarters": ["Q1-2026", "Q2-2026"] },
+      "agents_invoked": ["planning_agent"],
+      "expected_output": "A short narrative: Q1 Ingestion peaked at 122% → 2 slips; Q2 rebalanced to 95% → clean ship; Q3 plan as-proposed would push 3 teams back over 100%."
+    },
+    {
+      "id": "EVT-DECIDE-BACKLOG-01-PRIORITIZE",
+      "type": "decide_priority",
+      "label": "Prioritize Circuit Breakers",
+      "description": "User clicked Prioritize on BACKLOG-01 (Circuit Breakers). Both agents emit their take; workflow pauses for human confirm.",
+      "payload": { "item_id": "BACKLOG-01", "action": "prioritize" },
+      "agents_invoked": ["planning_agent", "stakeholder_agent"],
+      "expected_output": "Stakeholder agrees (protects renewal). Planning flags the Delivery capacity risk and asks for a scope reduction or a deferred ship week. Human confirms or revises."
+    },
+    {
+      "id": "EVT-DECIDE-BACKLOG-01-DEPRIORITIZE",
+      "type": "decide_priority",
+      "label": "Deprioritize Circuit Breakers",
+      "description": "User clicked Deprioritize on BACKLOG-01.",
+      "payload": { "item_id": "BACKLOG-01", "action": "deprioritize" },
+      "agents_invoked": ["planning_agent", "stakeholder_agent"],
+      "expected_output": "Planning agrees (frees Delivery for Signatures v2). Stakeholder objects — cites the customer reliability complaint and asks to revisit in Q4. Human confirms."
+    },
+    {
+      "id": "EVT-DECIDE-BACKLOG-02-PRIORITIZE",
+      "type": "decide_priority",
+      "label": "Prioritize Ingestion debt remnant",
+      "description": "User clicked Prioritize on BACKLOG-02 (Ingestion debt remnant). Role-reversal beat — here the Stakeholder is the one resisting.",
+      "payload": { "item_id": "BACKLOG-02", "action": "prioritize" },
+      "agents_invoked": ["planning_agent", "stakeholder_agent"],
+      "expected_output": "Planning insists (prevents a Q1 repeat before Regional EU). Stakeholder pushes back (no customer voice; spend the capacity on Q3-ING-01 revenue instead). Human confirms."
+    },
+    {
+      "id": "EVT-DECIDE-Q3-ING-01-DEFER-PARTIAL",
+      "type": "decide_priority",
+      "label": "Defer Regional Ingestion EU (partial)",
+      "description": "User clicked the Planning Agent's proposed compromise on Q3-ING-01: ship the EU endpoint, defer routing rules + Frankfurt PoP to Q4.",
+      "payload": { "item_id": "Q3-ING-01", "action": "defer_partial", "scope_kept": "EU ingest endpoint", "scope_deferred": ["regional routing rules", "Frankfurt PoP"] },
+      "agents_invoked": ["planning_agent", "stakeholder_agent"],
+      "expected_output": "Stakeholder accepts (keeps the prospect commitment viable). Planning confirms it fits the capacity envelope. Human confirms."
+    }
+  ]
+}
