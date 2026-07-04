@@ -111,3 +111,48 @@ The four `decision_required` items each exercise a different agent-reasoning pat
 | BACKLOG-02 Ingestion debt | `partially_done` | prioritize vs deprioritize *(role-reversal)* | deprioritize (no revenue) | prioritize (prevents Q1 repeat) |
 | BACKLOG-03 API Keys | `blocked` | unblock vs cut | unblock (audit gap) | cut (cheaper to revisit) |
 | Q3-ING-01 Regional EU | `not_started` | prioritize vs defer_partial | prioritize (P0 revenue) | defer_partial (capacity) |
+
+## 5. Google Cloud deployment topology (codelab 09 + 10)
+
+```mermaid
+flowchart LR
+    classDef cloud fill:#4ade8022,stroke:#4ade80,color:#e6e9ef
+    classDef browser fill:#1f6feb22,stroke:#6ea8ff,color:#e6e9ef
+    classDef agent fill:#b08cff22,stroke:#b08cff,color:#e6e9ef
+
+    U(["Browser"]):::browser
+
+    subgraph CloudRun["Cloud Run (serverless container)"]
+        SPA["Vue SPA<br/>(built assets)"]:::browser
+        API["FastAPI<br/>/api/state, /api/review, /health"]:::cloud
+    end
+
+    subgraph AgentRuntime["Agent Runtime (managed, stateful)"]
+        WF["ADK Workflow<br/>+ Planning + Stakeholder agents"]:::agent
+        SESS[("Session Service<br/>+ long-term memory")]:::agent
+    end
+
+    subgraph IAM["IAM"]
+        SA["Cloud Run runtime SA<br/>roles/aiplatform.user"]:::cloud
+    end
+
+    U -- "HTTPS" --> SPA
+    SPA -- "fetch /api/*<br/>(same origin)" --> API
+    API -- ":query REST<br/>(OIDC-auth)" --> WF
+    WF --- SESS
+    SA -. "permits" .-> WF
+
+    classDef note fill:none,stroke:none,color:#8a93a6
+    NOTE["Deploy:<br/>1. agents-cli deploy (codelab 10)<br/>2. gcloud run deploy (codelab 09)"]:::note
+```
+
+**Two deploy commands, two targets:**
+
+| Target | What lives there | How it deploys |
+| --- | --- | --- |
+| Agent Runtime | `app/agent.py` ADK workflow + bundled `data/` | `agents-cli scaffold enhance --deployment-target agent_runtime --yes` then `agents-cli deploy` (codelab 10) |
+| Cloud Run | FastAPI + built Vue SPA | `gcloud run deploy` from the `Dockerfile` (codelab 09 source-deploy pattern) |
+
+**Required env vars on Cloud Run:** `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `AGENT_RUNTIME_ID` (from `deployment_metadata.json` after the agent deploys).
+
+**v1 vs v2 HITL:** v1 runs the agent synchronously per `/api/review` call (no `RequestInput` pause). v2 adds a HITL node so the agent pauses on Agent Runtime → the dashboard queries the Session Service for paused sessions → resumes on Approve (full codelab 09 flow).

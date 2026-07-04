@@ -1,0 +1,42 @@
+# Docker build context exclusions.
+# Keep the image small + avoid leaking local artifacts.
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Env / secrets — NEVER bake into the image
+.env
+.env.*
+*.key
+*.pem
+
+# ADK / agents-cli artifacts
+artifacts/
+deployment_metadata.json
+
+# Frontend node_modules + dev builds (rebuilt inside the image)
+frontend/node_modules/
+frontend/dist/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Docs / planning (not needed at runtime)
+docs/
+.git/
+.gitignore
+README.md
+LICENSE
+Makefile
+IDEA.md
+PLAN.md
