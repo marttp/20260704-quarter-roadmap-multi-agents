@@ -1,6 +1,15 @@
 {
-  "_comment": "Q2-2026 initiatives — completed history. Two Q1 slips were carried in and shipped (Q2-DLV-01, Q2-PLT-01). One stretch (Q2-DLV-03 Circuit Breakers) was cut cleanly in week 4 before burn. This is the 'rebalanced, healthy' baseline the Eng Agent wants to defend in Q3 planning.",
+  "_comment": "Q2-2026 initiatives — JUST-ENDED QUARTER in a realistic mess. NOT a clean 'shipped/cut' history. Of 6 committed items: 2 completed, 1 in_progress (spills), 1 partially_done (milestones split), 1 blocked (external dep), 1 not_started (capacity-lost). The 4 non-completed items carry forward into Q3 planning with their incoming states + feedback. This is the ground truth both agents reason over.",
   "quarter": "Q2-2026",
+  "quarter_ended": "2026-06-30",
+  "status_taxonomy": {
+    "completed":      "Shipped, done.",
+    "in_progress":    "Being worked now; continues into next quarter.",
+    "partially_done": "Some milestones hit, some not.",
+    "blocked":        "Stuck on a dep (external team / vendor / design / infra).",
+    "not_started":    "Planned, never began (lost to capacity).",
+    "cut":            "Deprioritized / abandoned."
+  },
   "initiatives": [
     {
       "id": "Q2-DLV-01",
@@ -14,27 +23,14 @@
       "target_week": 3,
       "planned_hours": 280,
       "actual_hours": 300,
-      "status": "shipped",
+      "status": "completed",
       "shipped_week": 3,
+      "progress_pct": 100,
+      "remaining_hours": 0,
+      "blocker": null,
+      "feedback": [],
       "kr": "HMAC-SHA256 signatures on every outbound webhook; rotate-able signing keys.",
-      "notes": "Carried from Q1-DLV-02. Shipped early in Q2 once Delivery capacity freed up. Slightly over plan (+20h)."
-    },
-    {
-      "id": "Q2-PLT-01",
-      "name": "API Keys & Permissions (carry-over)",
-      "quarter": "Q2-2026",
-      "owner_team": "eng-platform",
-      "owner_function": "Engineering",
-      "assignees": ["jonas-bauer", "ravi-deshpande"],
-      "customer_champion": "marcus-okafor",
-      "deps": [],
-      "target_week": 4,
-      "planned_hours": 300,
-      "actual_hours": 310,
-      "status": "shipped",
-      "shipped_week": 4,
-      "kr": "Scoped API keys (read/write/admin); rotate + revoke; audit log per key.",
-      "notes": "Carried from Q1-PLT-02. Shipped week 4."
+      "notes": "Carried from Q1-DLV-02. Shipped early in Q2 once Delivery capacity freed up."
     },
     {
       "id": "Q2-DLV-02",
@@ -48,10 +44,16 @@
       "target_week": 10,
       "planned_hours": 520,
       "actual_hours": 540,
-      "status": "shipped",
+      "status": "completed",
       "shipped_week": 10,
+      "progress_pct": 100,
+      "remaining_hours": 0,
+      "blocker": null,
+      "feedback": [
+        { "source": "customer", "signal": "Beta users want selective event replay (not just bulk)", "weight": "medium" }
+      ],
       "kr": "Replay any event from the last 30 days to an endpoint; bulk replay with rate cap.",
-      "notes": "On plan. The flagship Q2 launch."
+      "notes": "Flagship Q2 launch. Selective-replay feedback feeds Q3-PLT-01 (Replay 2.0 UI)."
     },
     {
       "id": "Q2-PLT-02",
@@ -64,11 +66,17 @@
       "deps": ["Q2-PLT-01"],
       "target_week": 11,
       "planned_hours": 400,
-      "actual_hours": 390,
-      "status": "shipped",
-      "shipped_week": 11,
+      "actual_hours": 340,
+      "status": "in_progress",
+      "shipped_week": null,
+      "progress_pct": 85,
+      "remaining_hours": 60,
+      "blocker": null,
+      "feedback": [
+        { "source": "customer", "signal": "Beta users want CSV export before GA", "weight": "medium" }
+      ],
       "kr": "Per-endpoint delivery / retry / failure rates over time; exportable CSV.",
-      "notes": "On plan. Lena provided the dashboard design."
+      "notes": "Core charts shipped; CSV export + polish remaining. Will spill ~60h into Q3 — small carryover."
     },
     {
       "id": "Q2-ING-01",
@@ -81,15 +89,45 @@
       "deps": [],
       "target_week": 13,
       "planned_hours": 320,
-      "actual_hours": 330,
-      "status": "shipped",
-      "shipped_week": 13,
-      "kr": "Reduce Ingestion P99 latency variance by 40%; remove 3 known footguns from Q1.",
-      "notes": "Internal. Paid down the Q1 rate-limiter / schema debt. Late-quarter, on plan. Did NOT fully clear the backlog — see Q3-ING-01."
+      "actual_hours": 160,
+      "status": "partially_done",
+      "shipped_week": null,
+      "progress_pct": 60,
+      "milestones_total": 5,
+      "milestones_closed": 3,
+      "remaining_hours": 160,
+      "blocker": null,
+      "feedback": [],
+      "kr": "Reduce Ingestion P99 latency variance by 40%; remove 5 known footguns from Q1.",
+      "notes": "Closed 3 of 5 footguns. The remaining 2 are the ones that compounded into the Q1 122% peak. Carries into Q3 as BACKLOG-02."
+    },
+    {
+      "id": "Q2-PLT-01",
+      "name": "API Keys & Permissions (carry-over)",
+      "quarter": "Q2-2026",
+      "owner_team": "eng-platform",
+      "owner_function": "Engineering",
+      "assignees": ["jonas-bauer", "ravi-deshpande"],
+      "customer_champion": "marcus-okafor",
+      "deps": [],
+      "target_week": 4,
+      "planned_hours": 300,
+      "actual_hours": 120,
+      "status": "blocked",
+      "shipped_week": null,
+      "progress_pct": 40,
+      "remaining_hours": 180,
+      "blocker": "Design system upgrade delayed 6 weeks; permission UX depends on the new component library.",
+      "blocker_owner": "design",
+      "feedback": [
+        { "source": "internal", "signal": "Security team flagged key rotation as an audit gap", "weight": "high" }
+      ],
+      "kr": "Scoped API keys (read/write/admin); rotate + revoke; audit log per key.",
+      "notes": "Carried from Q1-PLT-02. Backend done; blocked on Design mid-Q2. Unresolved entering Q3 → BACKLOG-03."
     },
     {
       "id": "Q2-DLV-03",
-      "name": "Delivery Circuit Breakers (stretch)",
+      "name": "Delivery Circuit Breakers",
       "quarter": "Q2-2026",
       "owner_team": "eng-delivery",
       "owner_function": "Engineering",
@@ -98,21 +136,30 @@
       "deps": ["Q2-DLV-02"],
       "target_week": 13,
       "planned_hours": 240,
-      "actual_hours": 20,
-      "status": "cut",
+      "actual_hours": 0,
+      "status": "not_started",
       "shipped_week": null,
+      "progress_pct": 0,
+      "remaining_hours": 240,
+      "blocker": null,
+      "reason": "Capacity-lost — Delivery absorbed by Signature Verification + Replay Engine follow-on. Never began.",
+      "feedback": [
+        { "source": "customer", "signal": "ACME filed a reliability complaint; renewal at risk", "weight": "high" }
+      ],
       "kr": "Per-endpoint circuit breaker after N consecutive failures; auto-reopen probe.",
-      "notes": "CUT in week 4 — stretch goal, deprioritized to keep Delivery utilization in the healthy band. Moved to backlog. Will be re-proposed in Q3 as Q3-DLV-02."
+      "notes": "Planned in Q2, never started. Carries into Q3 as BACKLOG-01 (the prioritize/deprioritize lightning rod)."
     }
   ],
   "quarter_outcome": {
-    "committed": 5,
-    "stretch": 1,
-    "shipped": 4,
-    "shipped_late": 0,
-    "slipped": 0,
-    "cut": 1,
+    "committed": 6,
+    "completed": 2,
+    "in_progress": 1,
+    "partially_done": 1,
+    "blocked": 1,
+    "not_started": 1,
+    "cut": 0,
     "carryover_from_q1": ["Q1-DLV-02", "Q1-PLT-02"],
-    "carryover_to_q3": []
+    "carryover_to_q3": ["Q2-PLT-02", "Q2-ING-01", "Q2-PLT-01", "Q2-DLV-03"],
+    "carryover_remaining_hours_total": 640
   }
 }
