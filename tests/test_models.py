@@ -5,7 +5,7 @@ consumes) enforce the expected vocabulary — invalid positions/states/decision
 types are rejected at the schema boundary.
 """
 
-import pytest
+import pytest  # type: ignore
 from pydantic import ValidationError
 
 from app.models import (
@@ -26,7 +26,7 @@ def test_feedback_accepts_valid_sources_and_weights():
 
 def test_feedback_rejects_unknown_source():
     with pytest.raises(ValidationError):
-        Feedback(source="galaxy", signal="x", weight="high")
+        Feedback(source="galaxy", signal="x", weight="high")  # type: ignore
 
 
 def test_planning_item_minimal_construction():
@@ -48,7 +48,7 @@ def test_planning_item_rejects_unknown_state():
         PlanningItem(
             id="x",
             name="x",
-            incoming_state="vaporware",  # not in the taxonomy
+            incoming_state="vaporware",  # not in the taxonomy  # type: ignore
             owner_team="eng-delivery",
             decision_type="auto_keep",
         )
@@ -66,8 +66,12 @@ def test_agent_position_requires_reason_referencing_evidence():
 def test_agent_positions_output_wraps_a_list():
     out = AgentPositionsOutput(
         positions=[
-            AgentPosition(item_id="BACKLOG-01", position="prioritize", reason="renewal risk."),
-            AgentPosition(item_id="BACKLOG-02", position="deprioritize", reason="no revenue."),
+            AgentPosition(
+                item_id="BACKLOG-01", position="prioritize", reason="renewal risk."
+            ),
+            AgentPosition(
+                item_id="BACKLOG-02", position="deprioritize", reason="no revenue."
+            ),
         ]
     )
     assert len(out.positions) == 2
