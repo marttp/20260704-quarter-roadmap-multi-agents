@@ -1,90 +1,121 @@
-# 5-Minute Video Script — Quarter Roadmap Co-Pilot
+# 5-Minute Video Script — Quarter Roadmap Co-Pilot (UPDATED for stable deploy)
 
-**Length:** 5:00 (hard cap per rubric). Single-take friendly — no editing required if you narrate steadily.
+**Length:** 5:00 hard cap. Single-take friendly.
 **Required beats (rubric):** Problem Statement · Why Agents · Architecture · Demo · The Build.
 
-Record in Antigravity IDE so the build narrative is visible on screen (satisfies the Antigravity concept).
+**Before recording:** have both URLs open + verified:
+- Dashboard: your Cloud Run URL (e.g. `https://quarter-roadmap-copilot-xxxx-uw.a.run.app`)
+- Agent Runtime: confirmed via `curl -X POST <url>/api/chat -d '{"question":"hello"}'`
 
 ---
 
-## 0:00–0:30 — Hook + Problem (no screen-share yet, or title card)
+## 0:00–0:35 — Hook + Problem (title card or dashboard wide-shot)
 
-> "Every quarter, a planning lead opens the spreadsheet and finds the same mess. Last quarter didn't finish cleanly. A couple of things shipped. One's still in progress, spilling over. Something's partially done. One's blocked on another team. And one thing we planned — we never even started, because capacity evaporated.
+> "Every quarter, a planning lead opens the spreadsheet and finds the same mess. Last quarter didn't finish cleanly — things shipped, things spilled over, something's blocked, something never started. Now we have to plan the next quarter on top of all that, with less capacity than we need.
 >
-> Now we have to plan the next quarter on top of all of that. Today's tools *list* the mess. They don't *reason* across it. This project does — for a synthetic company called PromptJang."
+> Today's tools *list* the mess. They don't *reason* across it. This project does — for a synthetic company called PromptJang, a webhook reliability platform."
 
 **Title card:** *Quarter Roadmap Co-Pilot — two agents, one messy quarter, a human in the middle.*
 
 ---
 
-## 0:30–1:15 — Why Agents, and Why Two
+## 0:35–1:15 — Why Agents, and Why Two
 
-**Screen:** Antigravity IDE showing `app/agent.py`.
+**Screen:** Antigravity IDE, `app/agent.py` open, scroll to show `planning_agent` + `stakeholder_agent` + `advisor_agent`.
 
-> "I could ask one LLM to draft a prioritized list. But the real tension in roadmap planning is *between departments*. Product wants to ship for customers; Engineering wants to protect utilization. One model playing both sides flattens that into a polite compromise that hides the real disagreement.
+> "One LLM could draft a prioritized list. But roadmap planning has real tension between departments. Product wants to ship; Engineering wants to protect utilization. One model playing both sides flattens that.
 >
-> So I built two agents with opposed mandates. The Engineering Planning Agent emits first, citing the utilization history. The Product Stakeholder Agent responds having seen those positions. Where they disagree — the human decides."
-
-Point at the workflow on screen as you say "two agents."
+> So I built **three agents** with distinct mandates:
+> - **Planning Agent** (Engineering) — cites utilization history, pushes back on over-commitment.
+> - **Stakeholder Agent** (Product) — sees Eng's positions, argues for customer value.
+> - **Advisor Agent** — answers free-form questions about the org: 'who can I move to another team?'"
 
 ---
 
-## 1:15–2:00 — Architecture
+## 1:15–2:00 — Architecture (30 seconds, keep it crisp)
 
-**Screen:** scroll `app/agent.py` slowly; or open `docs/architecture.md` to the Mermaid component graph.
+**Screen:** `docs/architecture.md` — the Mermaid component graph + interaction sequence.
 
-> "It's an ADK 2.0 graph Workflow. Five nodes: load the planning state and redact PII; the Planning Agent emits structured positions; a small node combines context for the next agent; the Stakeholder Agent responds; a summarize node bundles both into a briefing with consensus and dispute counts. Both agents output through Pydantic schemas so the dashboard gets predictable JSON. Around the workflow: a local MCP server exposing the dataset, a Semgrep-plus-STRIDE security layer, and a Vue 3 dashboard."
+> "It's an ADK 2.0 graph Workflow. A classify node routes incoming messages: review requests go through the two-agent debate chain; questions go to the advisor. The dashboard is Vue 3 + TypeScript, the backend is FastAPI, the agent is deployed on Agent Runtime. The advisor has three MCP-style tools to read the org, utilization history, and initiatives."
 
----
-
-## 2:00–3:30 — Live Demo (the core)
-
-**Screen:** browser at `http://localhost:8080` (or the deployed Cloud Run URL).
-
-> "Here's Q3. The banner says demand exceeds the initiative budget by 260 hours — so at least one decision has to go.
->
-> Four items are flagged for decision. Let's take the first one — Circuit Breakers. Cut twice already. The Stakeholder Agent wants to prioritize it: a customer filed a reliability complaint, renewal is at risk. The Planning Agent wants to deprioritize: the Delivery team is fully committed to Webhook Signatures v2, stacking both would repeat our Q1 122% peak.
->
-> I'll deprioritize it." *(click ↓ Deprioritize; card animates)*
->
-> "Second one — Ingestion tech-debt remnant. This one's a role reversal. The Stakeholder wants to deprioritize: no customer voice, no revenue line. The Planning Agent insists: these two remaining footguns are exactly what caused the Q1 over-commitment, and we're about to add Regional Ingestion EU on top. I'll prioritize it." *(click ↑ Prioritize)*
->
-> "Notice the capacity banner — it's recomputing live as I commit and defer items. Once I've cut enough it turns green, meaning the Q3 plan now fits the budget."
-
-*(If you have time: click one more — the blocked API Keys item — to show the unblock-vs-cut decision type.)*
+Point at the graph as you say each component.
 
 ---
 
-## 3:30–4:15 — Security + Deploy
+## 2:00–3:30 — LIVE DEMO: The Prioritization Board (core of the video)
 
-**Screen:** terminal + browser.
+**Screen:** Open the dashboard URL in browser. Zoom to 125%.
 
-> "On security — every payload runs through a `redact_confidential` function *before* any agent sees it, so employee names and the synthetic-data markers never reach the model. A Semgrep pre-commit gate scans for hardcoded API keys on every commit, and a STRIDE threat-modeling skill lives in the project for on-demand reviews.
+### Beat 1 — The board (0:20)
+> "Here's Q3. The banner says demand exceeds the initiative budget by 260 hours. Four items are flagged for decision — each shows both agents' positions side by side."
+
+**Point at:** Circuit Breakers card → 🟣 Stakeholder says *prioritize* (renewal risk) · 🔵 Planning says *deprioritize* (Delivery is on Signatures v2).
+
+### Beat 2 — Make a decision (0:30)
+> "Circuit Breakers has been cut twice already. The Stakeholder Agent argues a customer filed a reliability complaint. The Planning Agent argues the Delivery team can't absorb it alongside Signatures v2.
 >
-> On deploy — the agent graph is on Agent Runtime, the FastAPI backend and Vue dashboard are on Cloud Run in a multi-stage container. The backend calls Agent Runtime's query endpoint to run the workflow."
+> I'll **deprioritize** — Planning's capacity argument wins this round."
 
-*(Show the two URLs in browser tabs: the Cloud Run dashboard URL, and the Agent Runtime deployment in Cloud Console.)*
+**Click:** `↓ Deprioritize` on Circuit Breakers. Card animates.
+
+### Beat 3 — Role-reversal beat (0:20)
+> "Here's the interesting one — Ingestion tech debt. The roles **reverse**: Stakeholder wants to deprioritize (no customer voice); Planning insists (these footguns caused the Q1 over-commitment). I'll trust Eng and **prioritize**."
+
+**Click:** `↑ Prioritize` on Ingestion debt. → Card moves to Q3 Committed.
+
+### Beat 4 — Capacity turns green (0:20)
+> "Watch the capacity banner — it's recomputing live as I commit and defer items."
+
+**Show:** The banner updating with the running delta.
 
 ---
 
-## 4:15–5:00 — The Build + Close
+## 3:30–4:20 — LIVE DEMO: The Advisor Chat (the "wow" moment)
 
-**Screen:** back to Antigravity IDE, or the GitHub repo.
+**Screen:** Scroll down to the 💬 Advisor Agent panel.
 
-> "Built with Antigravity IDE and the Agents CLI through Kaggle's five-day course — scaffold, lint, playground, deploy. A Vue 3 + TypeScript frontend, a FastAPI backend, a local MCP server, twenty-four tests, all six capstone concepts covered: ADK, MCP, Antigravity, Security, Deployability, Agent skills.
+> "Now the part I'm most excited about. I can ask the advisor free-form questions about the organization — things a spreadsheet can't answer."
+
+**Type in the chat box:**
+> *"Who can I move to the Delivery team to help with Webhook Signatures v2?"*
+
+**Hit Send.** Wait for the advisor's response (3–5 seconds).
+
+**Read the response aloud** (it should name specific people by role + skills + capacity).
+
+> "The advisor read the org data, checked each person's skills and team utilization, and recommended specific people — grounding the answer in the actual data, not hallucinating."
+
+*(If time: ask a second question — "What should I deprioritize to fit the budget?" — to show the advisor reasoning about tradeoffs.)*
+
+---
+
+## 4:20–4:45 — Security + Deploy (25 seconds, show don't tell)
+
+**Screen:** Terminal split — `curl` the health endpoint + the Cloud Run console.
+
+> "On security: every payload runs through PII redaction before any agent sees it. Semgrep gates every commit.
 >
-> The repo's public — clone it, run `make install && make frontend-build && make dashboard`, and you can explore all four decision items yourself. Thanks for watching."
+> On deploy: the agent graph is on Agent Runtime, the dashboard is on Cloud Run. Both are live right now — this URL is the actual production endpoint."
+
+**Show:** `curl <url>/health` → `{"agent_runtime_configured": true}`.
+
+---
+
+## 4:45–5:00 — Close
+
+**Screen:** GitHub repo URL.
+
+> "Built with Antigravity IDE and the Agents CLI through Kaggle's five-day course. Vue 3 + TypeScript frontend, FastAPI backend, ADK 2.0 multi-agent graph, local MCP server, all six capstone concepts covered. The repo's public — clone it and explore. Thanks for watching."
 
 **End card:** repo URL + *capstone for the 5-Day AI Agents Intensive Vibe Coding Course with Google.*
 
 ---
 
-## Recording checklist
+## Recording tips
 
-- [ ] Close notifications / Slack / email before recording.
-- [ ] Increase browser zoom to 110–125% so text is legible at 1080p.
-- [ ] Use a dark IDE theme (matches the dashboard).
-- [ ] Have the dashboard pre-loaded with `make dashboard` running before you hit record.
-- [ ] If you stumble, just pause and re-say the sentence — trim in editing, or leave the pause if single-taking.
-- [ ] Upload to YouTube as **unlisted** (judges can view via the Writeup's Media Gallery; not publicly discoverable).
-- [ ] Attach to the Kaggle Writeup Media Gallery + set a cover image.
+- [ ] Close Slack, email, notifications.
+- [ ] Browser zoom 125% — text must be legible at 1080p.
+- [ ] Have the dashboard pre-loaded + a chat response cached (so you know the agent answers successfully).
+- [ ] If the advisor's response takes >5 seconds on camera, say "the advisor is reading the org data…" while waiting.
+- [ ] Upload to YouTube as **unlisted**.
+- [ ] Attach to the Kaggle Writeup Media Gallery + set a cover image (screenshot of the dashboard).
