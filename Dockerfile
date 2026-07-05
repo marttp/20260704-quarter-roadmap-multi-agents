@@ -36,7 +36,6 @@ RUN uv sync --extra all --no-dev
 
 # Copy the application code + bundled data.
 COPY app/ ./app/
-COPY data/ ./data/
 COPY mcp_server/ ./mcp_server/
 COPY submission_frontend/ ./submission_frontend/
 
