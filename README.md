@@ -1,5 +1,9 @@
 # 🗺️ Quarter Roadmap Co-Pilot
 
+<p align="center">
+  <img src="docs/project_thumbnail.png" alt="Quarter Roadmap Co-Pilot Thumbnail" width="560" height="280">
+</p>
+
 **Two agents, one messy quarter, a human in the middle.**
 
 > An ADK 2.0 multi-agent system that helps a planner close out a quarter that didn't finish cleanly. A **Product Stakeholder Agent** and an **Engineering Planning Agent** debate each carried-over or newly-proposed item; the human makes the final call. A free-form **Advisor Agent** answers follow-up questions about capacity, staffing, and trade-offs.
@@ -45,6 +49,10 @@ This project uses **two ADK `LlmAgent`s with distinct mandates** that reason in 
 A third agent, the **Advisor**, handles everything that doesn't fit a structured decision card — "who can I move to Delivery?", "what's over capacity right now?" — grounded in the same org, utilization, and initiative data via tool calls, not the static dataset text.
 
 ## 3. Architecture
+
+![Project Architecture Diagram](docs/architecture_diagram.png)
+
+### Execution Flow
 
 ```
                                    START
@@ -254,8 +262,9 @@ Redeploy **6.1 only** after changing anything under `app/` (agent logic, prompts
 ├── tests/                         # 25 pytest cases (unit + integration)
 └── docs/
     ├── architecture.md            # Mermaid component + sequence diagrams, deploy topology
-    ├── video_script.md            # 5-minute demo recording script
-    └── writeup.md                 # Kaggle Writeup draft
+    └── video_script.md            # 5-minute demo recording script
+
+# The Kaggle Writeup draft lives at ../WRITEUP.md (outside this repo folder).
 ```
 
 ## 9. Security
