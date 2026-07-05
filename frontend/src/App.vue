@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import type { PlanningItem, PlanningState } from './types'
-import { fetchPlanningState } from './api'
+import { fetchPlanningState, runLiveReview } from './api'
 import ItemCard from './components/ItemCard.vue'
 import CapacityBanner from './components/CapacityBanner.vue'
 import ChatPanel from './components/ChatPanel.vue'
@@ -116,6 +116,55 @@ function resetDemo() {
   window.location.reload()
 }
 
+// Calls the real planning_agent -> stakeholder_agent workflow on Agent Runtime
+// and overwrites every card's positions with the fresh live output — this is
+// what actually makes "two agents debate" true of the board, not just the chat.
+const reviewLoading = ref(false)
+const reviewStatus = ref<string | null>(null)
+
+function applyPositions(positions: Record<string, {
+  planning_position?: string
+  planning_reason?: string
+  stakeholder_position?: string
+  stakeholder_reason?: string
+}>) {
+  let updated = 0
+  for (const list of [backlog.value, proposals.value, committed.value]) {
+    for (const item of list) {
+      const p = positions[item.id]
+      if (!p) continue
+      if (p.planning_position) item.planning_position = p.planning_position as PlanningItem['planning_position']
+      if (p.planning_reason) item.planning_reason = p.planning_reason
+      if (p.stakeholder_position) item.stakeholder_position = p.stakeholder_position as PlanningItem['stakeholder_position']
+      if (p.stakeholder_reason) item.stakeholder_reason = p.stakeholder_reason
+      updated += 1
+    }
+  }
+  return updated
+}
+
+async function runReview() {
+  if (reviewLoading.value) return
+  reviewLoading.value = true
+  reviewStatus.value = null
+  try {
+    const result = await runLiveReview()
+    if (result.mode === 'live' && result.positions) {
+      const updated = applyPositions(result.positions)
+      reviewStatus.value = `✅ Live agents updated ${updated} item${updated === 1 ? '' : 's'}.`
+      persistDecisions()
+    } else if (result.mode === 'synthetic') {
+      reviewStatus.value = '💡 Agent Runtime not configured yet — showing the pre-authored scenario.'
+    } else {
+      reviewStatus.value = `⚠️ ${result.error || result.note || 'Live review did not return usable positions.'}`
+    }
+  } catch (e) {
+    reviewStatus.value = `⚠️ ${e instanceof Error ? e.message : String(e)}`
+  } finally {
+    reviewLoading.value = false
+  }
+}
+
 function findAndRemove(itemId: string, lists: PlanningItem[][]): PlanningItem | null {
   for (const list of lists) {
     const idx = list.findIndex((it) => it.id === itemId)
@@ -182,6 +231,13 @@ function onDecide(payload: { itemId: string; action: DecideAction }) {
 
   <main v-else-if="state">
     <CapacityBanner :capacity="state.capacity" :committed-hours="committedHours" :baseline-hours="baselineHours" />
+
+    <div class="live-review-row">
+      <button class="live-review" :disabled="reviewLoading" @click="runReview">
+        {{ reviewLoading ? '🤖 Agents are debating…' : '🤖 Run live agent review' }}
+      </button>
+      <span v-if="reviewStatus" class="live-review-status">{{ reviewStatus }}</span>
+    </div>
 
     <section class="columns">
       <div class="column" id="backlog">
