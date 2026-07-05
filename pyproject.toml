@@ -10,7 +10,9 @@ keywords = ["adk", "agents", "antigravity", "google-cloud", "vibe-coding"]
 
 # Core runtime — ADK 2.0 graph Workflow API (see codelabs 06, 07, 10).
 dependencies = [
-    "google-adk>=2.0.0a0,<3.0.0",
+    "a2a-sdk[http-server]~=0.3.22",
+    "aiohttp>=3.13.4",
+    "google-adk[gcp]>=2.0.0,<3.0.0",
     "pydantic>=2.6,<3.0",
 ]
 
@@ -53,7 +55,10 @@ packages = ["app", "mcp_server"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-ra -q"
+# Skip the agents-cli-generated integration + eval tests by default — they invoke
+# the live agent (need GEMINI_API_KEY / Agent Runtime). Run them explicitly with
+# `pytest tests/integration tests/eval` when you want them.
+addopts = "-ra -q --ignore=tests/integration --ignore=tests/eval"
 
 # --- uv ---
 # Pin the interpreter to a stable patch line; uv will fetch it if missing.
