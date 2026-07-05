@@ -71,6 +71,12 @@ def redact_text(text: str) -> str:
     return redact_confidential(text)
 
 
+# ASGI app for HTTP deployment (Cloud Run) — `uvicorn mcp_server.roadmap_mcp:app`.
+# Mounts the MCP endpoint at /mcp. Local stdio clients (Antigravity, Agents CLI)
+# still use `mcp.run()` below and never touch this.
+app = mcp.http_app()
+
+
 if __name__ == "__main__":
     # stdio transport — what local MCP clients (Antigravity, Agents CLI) expect.
     mcp.run()
