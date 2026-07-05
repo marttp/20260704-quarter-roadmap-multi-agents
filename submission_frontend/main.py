@@ -25,6 +25,7 @@ from submission_frontend.agent_runtime import (
     agent_runtime_is_configured,
     call_agent_runtime,
     extract_briefing,
+    extract_final_text,
 )
 
 # Load .env before reading any AGENT_RUNTIME_ID / GOOGLE_CLOUD_* env vars below.
@@ -120,8 +121,8 @@ def api_chat(body: dict):
     if agent_runtime_is_configured():
         try:
             raw = call_agent_runtime(question)
-            # The advisor's free-form answer lands in the response content/output.
-            answer = _extract_chat_answer(raw)
+            # The advisor's free-form answer is the last event's text.
+            answer = extract_final_text(raw)
             return {"mode": "live", "answer": answer, "raw": raw}
         except Exception as exc:  # noqa: BLE001
             return {"mode": "live_error", "error": str(exc)}
@@ -133,28 +134,6 @@ def api_chat(body: dict):
             "live org + utilization data."
         ),
     }
-
-
-def _extract_chat_answer(raw: dict) -> str:
-    """Best-effort pull of the advisor's text answer from an Agent Runtime response."""
-    # Walk common content locations.
-    for path in (("output",), ("content",), ("response", "content"), ("result", "output")):
-        node: Any = raw
-        try:
-            for key in path:
-                node = node[key]
-        except (KeyError, IndexError, TypeError):
-            continue
-        if isinstance(node, str) and node.strip():
-            return node
-        if isinstance(node, dict):
-            # ADK content blocks often look like {"parts": [{"text": "..."}]}.
-            parts = node.get("parts") if "parts" in node else None
-            if parts:
-                texts = [p.get("text", "") for p in parts if isinstance(p, dict)]
-                if any(t.strip() for t in texts):
-                    return "".join(texts)
-    return "(Agent responded but no parseable text was found.)"
 
 
 @app.get("/")
