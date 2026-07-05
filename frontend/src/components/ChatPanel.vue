@@ -2,27 +2,44 @@
 // Free-form chat with the advisor agent. Sends the user's question to /api/chat,
 // which forwards to Agent Runtime where the classify_input_node routes it to
 // the advisor_agent (free-form Q&A with data tools).
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 
 interface ChatMessage {
   role: 'user' | 'advisor' | 'system'
   text: string
 }
 
-const messages = ref<ChatMessage[]>([
-  {
-    role: 'system',
-    text: 'Ask the advisor about team capacity, who to move between teams, or what to prioritize.',
-  },
-])
+const WELCOME: ChatMessage = {
+  role: 'system',
+  text: 'Ask the advisor about team capacity, who to move between teams, or what to prioritize.',
+}
+
+const QUICK_PROMPTS = [
+  'Who can I move to Delivery to unblock Circuit Breakers?',
+  "What's over capacity right now?",
+  'Which item should I cut first to fit the budget?',
+]
+
+const messages = ref<ChatMessage[]>([WELCOME])
 const input = ref('')
 const loading = ref(false)
+const messagesEl = ref<HTMLDivElement | null>(null)
 
-async function send() {
-  const q = input.value.trim()
+async function scrollToBottom() {
+  await nextTick()
+  if (messagesEl.value) {
+    messagesEl.value.scrollTop = messagesEl.value.scrollHeight
+  }
+}
+
+function clearChat() {
+  messages.value = [WELCOME]
+}
+
+async function sendText(q: string) {
   if (!q || loading.value) return
   messages.value.push({ role: 'user', text: q })
-  input.value = ''
+  scrollToBottom()
   loading.value = true
   try {
     const res = await fetch('/api/chat', {
@@ -44,14 +61,38 @@ async function send() {
     messages.value.push({ role: 'system', text: `⚠️ ${e instanceof Error ? e.message : String(e)}` })
   } finally {
     loading.value = false
+    scrollToBottom()
   }
+}
+
+function send() {
+  const q = input.value.trim()
+  input.value = ''
+  sendText(q)
+}
+
+function sendQuickPrompt(q: string) {
+  sendText(q)
 }
 </script>
 
 <template>
   <section class="chat-panel">
-    <h3>💬 Advisor Agent</h3>
-    <div class="chat-messages">
+    <div class="chat-header">
+      <h3>💬 Advisor Agent</h3>
+      <button class="chat-clear" @click="clearChat" title="Clear the conversation">Clear</button>
+    </div>
+
+    <div class="chat-quick-prompts">
+      <button
+        v-for="(p, i) in QUICK_PROMPTS"
+        :key="i"
+        :disabled="loading"
+        @click="sendQuickPrompt(p)"
+      >{{ p }}</button>
+    </div>
+
+    <div class="chat-messages" ref="messagesEl">
       <div
         v-for="(m, i) in messages"
         :key="i"
@@ -61,11 +102,12 @@ async function send() {
         <span class="chat-author">{{ m.role === 'user' ? '🧑 You' : m.role === 'advisor' ? '🤖 Advisor' : '💡' }}</span>
         <div class="chat-text">{{ m.text }}</div>
       </div>
-      <div v-if="loading" class="chat-msg system">
+      <div v-if="loading" class="chat-msg advisor">
         <span class="chat-author">🤖 Advisor</span>
-        <div class="chat-text">thinking…</div>
+        <div class="chat-text typing-dots"><span /><span /><span /></div>
       </div>
     </div>
+
     <form @submit.prevent="send" class="chat-input-row">
       <input
         v-model="input"
