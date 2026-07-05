@@ -13,10 +13,11 @@ def test_app_is_constructed_with_expected_name():
     assert agent_module.app.root_agent is agent_module.root_agent
 
 
-def test_workflow_has_the_expected_five_edges():
-    # Linear chain: START -> load -> planning_agent -> build_stakeholder_input ->
-    #               stakeholder_agent -> summarize
-    assert len(agent_module.root_agent.edges) == 5
+def test_workflow_has_the_expected_edges():
+    # START -> classify -> {review: load_planning_state, chat: advisor}
+    # + review chain: load -> planning -> build_stakeholder -> stakeholder -> summarize
+    # = 6 edges total.
+    assert len(agent_module.root_agent.edges) == 6
 
 
 def test_both_llm_agents_use_the_same_flash_model():
