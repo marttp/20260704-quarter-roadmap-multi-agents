@@ -54,8 +54,9 @@ export interface PlanningItem {
   decision_type: DecisionType
   decision_required: boolean
   blocker?: string | null
-  // Agent positions (from the synthetic dataset; replaced by live agent output when
-  // the /api/review endpoint is wired to invoke the ADK workflow).
+  // Agent positions — from the synthetic dataset on initial load, overwritten
+  // with fresh live output from planning_agent/stakeholder_agent when the human
+  // clicks "Run live agent review" (see App.vue's runReview -> /api/review).
   stakeholder_position: AgentPositionLabel
   stakeholder_reason: string
   planning_position: AgentPositionLabel
