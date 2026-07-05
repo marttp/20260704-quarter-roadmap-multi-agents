@@ -37,7 +37,9 @@ def _runtime_query_url() -> str:
 
 def _access_token() -> str:
     """Fetch an OAuth access token via Application Default Credentials."""
-    creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+    creds, _ = google.auth.default(
+        scopes=["https://www.googleapis.com/auth/cloud-platform"]
+    )
     if not creds.valid:
         creds.refresh(google.auth.transport.requests.Request())
     return creds.token  # type: ignore[no-any-return]
@@ -45,10 +47,14 @@ def _access_token() -> str:
 
 def agent_runtime_is_configured() -> bool:
     """True if the env vars needed to reach Agent Runtime are set."""
-    return bool(os.environ.get("AGENT_RUNTIME_ID") and os.environ.get("GOOGLE_CLOUD_PROJECT"))
+    return bool(
+        os.environ.get("AGENT_RUNTIME_ID") and os.environ.get("GOOGLE_CLOUD_PROJECT")
+    )
 
 
-def call_agent_runtime(prompt: str = "Review the Q3 plan and surface both agents' positions.") -> Dict[str, Any]:
+def call_agent_runtime(
+    prompt: str = "Review the Q3 plan and surface both agents' positions.",
+) -> Dict[str, Any]:
     """POST to Agent Runtime :query and return the parsed response.
 
     The agent (app/agent.py) runs on Agent Runtime with the bundled dataset;
@@ -95,6 +101,8 @@ def extract_briefing(runtime_response: Dict[str, Any]) -> Optional[Dict[str, Any
                 return json.loads(node)
             except json.JSONDecodeError:
                 continue
-        if isinstance(node, dict) and ("reviews" in node or "decision_required" in node):
+        if isinstance(node, dict) and (
+            "reviews" in node or "decision_required" in node
+        ):
             return node
     return None
