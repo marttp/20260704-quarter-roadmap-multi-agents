@@ -48,3 +48,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Local deploy debug logs
+deploy-debug.log
