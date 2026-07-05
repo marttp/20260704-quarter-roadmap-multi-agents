@@ -32,11 +32,19 @@ export interface ReviewResponse {
 }
 
 // Triggers a real planning_agent -> stakeholder_agent run on Agent Runtime and
-// returns each item's fresh positions, keyed by item_id. `/api/review`'s
-// `prompt` is a query param (FastAPI default for a plain str arg), not a JSON
-// body — the default prompt is exactly what we want here, so no body is sent.
-export async function runLiveReview(): Promise<ReviewResponse> {
-  const res = await fetch('/api/review', { method: 'POST' })
+// returns each item's fresh positions, keyed by item_id. Pass the ids already
+// sitting in Q3 Committed + their total hours so the agents reason about the
+// REMAINING items against the REMAINING budget, not the original scenario
+// every time (see app/agent.py's load_planning_state_node).
+export async function runLiveReview(
+  alreadyCommitted: string[] = [],
+  committedHours = 0,
+): Promise<ReviewResponse> {
+  const res = await fetch('/api/review', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ already_committed: alreadyCommitted, committed_hours: committedHours }),
+  })
   if (!res.ok) {
     throw new Error(`Live review failed: ${res.status} ${res.statusText}`)
   }
