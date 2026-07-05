@@ -1,21 +1,27 @@
-"""ADK 2.0 graph Workflow: Stakeholder Agent + Planning Agent review a messy quarterly roadmap.
+"""ADK 2.0 graph Workflow with two modes: Q3 review + free-form chat advisor.
 
-Scenario (see data/README.md): PromptJang's Q3 plan over-runs the Eng initiative budget by 260h.
+Scenario (see app/data/README.md): PromptJang's Q3 plan over-runs the Eng initiative budget by 260h.
 Four items are flagged `decision_required`. Two agents with opposing mandates debate each;
 the human makes the final call in the UI.
 
-Graph flow:
-    START
-      -> load_planning_state_node        (reads data/*.json, redacts PII, formats context)
-      -> planning_agent                  (LlmAgent, Eng stance, emits AgentPositionsOutput)
-      -> build_stakeholder_input_node    (combines context + Eng positions for the next agent)
-      -> stakeholder_agent               (LlmAgent, Product stance, emits AgentPositionsOutput)
-      -> summarize_node                  (combines both into a PlanningBriefing for the UI)
-      -> END
+Graph flow (dual-mode, routed by classify_input_node):
 
-This is multi-agent (rubric: 'Agent / Multi-agent system (ADK) — Code'). The planning_agent
-emits first; the stakeholder_agent sees those positions before responding — a 1-turn A2A loop.
-Both outputs end at a human Approve gate in the dashboard; nothing auto-commits.
+    Review mode (default; message has no '?' / question keywords):
+      START -> classify_input_node
+            -> load_planning_state_node   (redacts PII, formats context)
+            -> planning_agent             (Eng stance)
+            -> build_stakeholder_input_node
+            -> stakeholder_agent          (Product stance)
+            -> summarize_node             (PlanningBriefing for the UI)
+            -> END
+
+    Chat mode (message looks like a question):
+      START -> classify_input_node
+            -> advisor_agent              (free-form Q&A with data tools)
+            -> END
+
+The advisor_agent lets the planner ask things like "who can I move to the Delivery
+team to unblock Circuit Breakers?" — it has tools to read org + utilization + initiatives.
 
 Built on the Agent Development Kit 2.0 graph Workflow API (codelab 06 pattern).
 """
@@ -39,9 +45,15 @@ from app.models import (
     ItemReview,
     PlanningBriefing,
 )
-from app.tools import load_planning_state, redact_confidential
+from app.tools import (
+    load_org,
+    load_planning_state,
+    load_quarter_initiatives,
+    load_utilization_history,
+    redact_confidential,
+)
 
-# Default model used across both LlmAgents. Same id as codelabs 06/07/08.
+# Default model used across all LlmAgents. Same id as codelabs 06/07/08.
 DEFAULT_MODEL = "gemini-3.1-flash-lite"
 
 
@@ -263,6 +275,80 @@ def _positions_by_item(raw: Any) -> Dict[str, Dict[str, Any]]:
 
 
 # --------------------------------------------------------------------------- #
+# Chat mode: classify_input_node + advisor_agent (free-form Q&A with data tools).
+# --------------------------------------------------------------------------- #
+
+
+@node
+def classify_input_node(ctx: Context, node_input: Any):
+    """Route the incoming message to the review chain or the chat advisor.
+
+    Heuristic: if the message reads like a question (has a '?' or common
+    question words), treat it as a chat; otherwise default to the Q3 review.
+    """
+    raw = str(node_input or "")
+    lowered = raw.lower()
+    is_chat = any(
+        kw in lowered
+        for kw in (
+            "?", "who ", "how ", "what ", "which ", "should ", "manage",
+            "move ", "team", "can ", "could ", "why ", "when ", "reorgan",
+        )
+    )
+    route = "chat" if is_chat else "review"
+    yield Event(output=raw, actions=EventActions(route=route))
+
+
+# --- Tools for the advisor agent (return JSON strings for reliable LLM parsing) ---
+
+
+def read_org_tool() -> str:
+    """Read the company org structure: teams (with weekly capacity) and employees
+    (with roles, skills). All names are suffixed (mock). Use this to answer questions
+    about who is on which team and what skills they have.
+    """
+    return redact_confidential(json.dumps(load_org(), ensure_ascii=False, default=str))
+
+
+def read_utilization_tool() -> str:
+    """Read Q1/Q2 per-team weekly utilization percentages + quarter averages.
+    Use this to argue about over- or under-commitment (anything over 100% is overtime).
+    """
+    return json.dumps(load_utilization_history(), ensure_ascii=False)
+
+
+def read_initiatives_tool(quarter: str = "Q3-2026") -> str:
+    """Read the initiatives for one quarter: 'Q1-2026', 'Q2-2026', or 'Q3-2026'.
+    Q1/Q2 are completed history; Q3 is the planning draft with decision_required items.
+    """
+    return redact_confidential(
+        json.dumps(load_quarter_initiatives(quarter), ensure_ascii=False, default=str)
+    )
+
+
+advisor_agent = LlmAgent(
+    name="advisor_agent",
+    model=DEFAULT_MODEL,
+    instruction=(
+        "You are the ROADMAP ADVISOR for PromptJang, a webhook reliability & observability company. "
+        "You answer the human planner's free-form questions about the organization, team capacity, "
+        "utilization history, and the Q3 roadmap.\n\n"
+        "Use your tools (read_org_tool, read_utilization_tool, read_initiatives_tool) to read the data "
+        "BEFORE answering. Ground every answer in the data; if the data doesn't cover something, say so.\n\n"
+        "For 'who can I move to another team' questions: consider the employee's skills, their current "
+        "team's utilization, and the target team's capacity. Recommend specific people by role and explain "
+        "the tradeoff (e.g. 'Diego (Tech Lead, Ingestion) could absorb the Platform work because his skills "
+        "include schema-validation; Ingestion is at 97% so has 3% slack').\n\n"
+        "For 'how should I manage' or 'what should I prioritize' questions: cite the Q1/Q2 utilization "
+        "history and the Q3 capacity envelope (over budget by 260h). Be specific about which "
+        "decision_required items matter most.\n\n"
+        "Answer in 3–6 sentences. Use plain language — the human is a planner, not an engineer."
+    ),
+    tools=[read_org_tool, read_utilization_tool, read_initiatives_tool],
+)
+
+
+# --------------------------------------------------------------------------- #
 # Root workflow + App wrapper (codelab 06 pattern).
 # agents-cli playground / agents-cli run / agents-cli deploy all discover this `app`.
 # --------------------------------------------------------------------------- #
@@ -271,9 +357,18 @@ def _positions_by_item(raw: Any) -> Dict[str, Dict[str, Any]]:
 root_agent = Workflow(
     name="quarter_roadmap_review",
     edges=[
-        # Linear chain expressed as (from, to) tuples — ADK 2.0 GA accepts this
-        # EdgeItem form. (The codelab-06 `Edge.chain(...)` helper is not in the GA API.)
-        (START, load_planning_state_node),
+        # Step 1: every request enters the classifier.
+        (START, classify_input_node),
+        # Step 2: route by the 'route' value emitted in EventActions.
+        # ADK 2.0 GA edge form: (from_node, {route_value: target_node, ...}).
+        (
+            classify_input_node,
+            {
+                "review": load_planning_state_node,
+                "chat": advisor_agent,
+            },
+        ),
+        # Review chain (linear).
         (load_planning_state_node, planning_agent),
         (planning_agent, build_stakeholder_input_node),
         (build_stakeholder_input_node, stakeholder_agent),
