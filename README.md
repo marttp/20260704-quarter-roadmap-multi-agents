@@ -1,9 +1,5 @@
 # 🗺️ Quarter Roadmap Co-Pilot
 
-<p align="center">
-  <img src="docs/project_thumbnail.png" alt="Quarter Roadmap Co-Pilot Thumbnail" width="560" height="280">
-</p>
-
 **Two agents, one messy quarter, a human in the middle.**
 
 > An ADK 2.0 multi-agent system that helps a planner close out a quarter that didn't finish cleanly. A **Product Stakeholder Agent** and an **Engineering Planning Agent** debate each carried-over or newly-proposed item; the human makes the final call. A free-form **Advisor Agent** answers follow-up questions about capacity, staffing, and trade-offs.
