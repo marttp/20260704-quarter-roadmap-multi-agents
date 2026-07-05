@@ -33,6 +33,9 @@ secrets/
 # ADK / agents-cli artifacts
 artifacts/
 deployment_metadata.json
+.google-agents-cli/
+app/.adk/
+quarter_roadmap_copilot/
 
 # Frontend (Vue 3 + Vite)
 frontend/node_modules/
