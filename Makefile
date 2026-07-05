@@ -76,8 +76,13 @@ AGENTS_CLI_NAME ?= quarter-roadmap-copilot
 deploy-scaffold:
 	agents-cli scaffold enhance --deployment-target agent_runtime --name $(AGENTS_CLI_NAME) --adk --yes
 
+requirements:
+	uv export --no-dev --no-hashes --format requirements-txt --output-file requirements.txt
+	grep -v "^-e \.$$" requirements.txt > requirements.tmp && mv requirements.tmp requirements.txt
+
 deploy-dry-run:
 	uv lock
+	$(MAKE) requirements
 	agents-cli deploy --dry-run --project $(GOOGLE_CLOUD_PROJECT) --region $(GOOGLE_CLOUD_LOCATION) --no-confirm-project
 
 # Deploy the ADK workflow to Agent Runtime (codelab 10). Run deploy-scaffold first.
