@@ -9,6 +9,14 @@ interface ChatMessage {
   text: string
 }
 
+// Current Q3 commit status, passed down from App.vue — sent with every
+// question so the advisor reasons about what's actually already decided,
+// not just the original static scenario (same gap /api/review had).
+const props = defineProps<{
+  alreadyCommitted: string[]
+  committedHours: number
+}>()
+
 const WELCOME: ChatMessage = {
   role: 'system',
   text: 'Ask the advisor about team capacity, who to move between teams, or what to prioritize.',
@@ -45,7 +53,11 @@ async function sendText(q: string) {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: q }),
+      body: JSON.stringify({
+        question: q,
+        already_committed: props.alreadyCommitted,
+        committed_hours: props.committedHours,
+      }),
     })
     const data = await res.json()
     if (data.mode === 'live' && data.answer) {
