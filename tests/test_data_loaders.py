@@ -23,7 +23,7 @@ def test_load_org_has_teams_and_employees():
         "eng-platform",
         "design",
     } <= team_ids
-    assert len(org["employees"]) == 12
+    assert len(org["employees"]) == 13
     # Every employee name carries the (mock) suffix — no real-person ambiguity.
     assert all(e["name"].endswith("(mock)") for e in org["employees"])
 

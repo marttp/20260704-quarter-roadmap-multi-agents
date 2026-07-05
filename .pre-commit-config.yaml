@@ -3,27 +3,27 @@
 #
 # Uses `language: system` for all hooks: the binaries (end-of-file-fixer,
 # trailing-whitespace-fixer, semgrep) are installed into .venv/bin by
-# `make install` (via the [security] extra in pyproject.toml). This makes the
-# config self-contained — no network access needed at commit time.
-#
-# Commit workflow: run `make install` first, then either `source .venv/bin/activate`
-# or use `uv run git commit ...` so the hook binaries are on PATH.
+# `make install` (via the [security] extra in pyproject.toml). Entries point
+# at .venv/bin/<tool> directly (pre-commit always runs hooks from the repo
+# root) rather than a bare command name, so commits work from any caller —
+# terminal, `uv run git commit`, or an IDE's Source Control panel — without
+# needing the venv activated or on PATH.
 
 repos:
   - repo: local
     hooks:
       - id: end-of-file-fixer
         name: End of File Fixer
-        entry: end-of-file-fixer
+        entry: .venv/bin/end-of-file-fixer
         language: system
         types: [file]
       - id: trailing-whitespace
         name: Trailing Whitespace
-        entry: trailing-whitespace-fixer
+        entry: .venv/bin/trailing-whitespace-fixer
         language: system
         types: [file]
       - id: semgrep
         name: Semgrep Security Scan
-        entry: semgrep --error --config .semgrep/rules.yaml
+        entry: .venv/bin/semgrep --error --config .semgrep/rules.yaml
         language: system
         types: [python]

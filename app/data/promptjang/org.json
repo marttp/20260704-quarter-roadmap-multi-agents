@@ -45,22 +45,25 @@
       "mission": "Shared design resource across Product and all Eng sub-teams."
     }
   ],
+  "_employee_capacity_note": "q3_allocation_pct = % of this person's weekly_capacity_hours already committed to Q3 initiatives (auto-agreed + already-committed items). Lower numbers = more room to reserve for tech debt / new asks.",
   "employees": [
-    { "id": "priya-chen",     "name": "Priya Chen (mock)",      "role": "Product Manager",         "team": "product",       "weekly_capacity_hours": 40, "skills": ["roadmap", "customer-research", "kr-definition"] },
-    { "id": "marcus-okafor",  "name": "Marcus Okafor (mock)",   "role": "Senior PM",               "team": "product",       "weekly_capacity_hours": 40, "skills": ["pricing", "billing", "api-design"] },
-    { "id": "lena-vargas",    "name": "Lena Vargas (mock)",     "role": "Product Designer",        "team": "product",       "weekly_capacity_hours": 40, "skills": ["ux", "dashboard", "design-system"] },
+    { "id": "priya-chen",     "name": "Priya Chen (mock)",      "role": "Product Manager",         "team": "product",       "weekly_capacity_hours": 40, "q3_allocation_pct": 88,  "skills": ["roadmap", "customer-research", "kr-definition"] },
+    { "id": "marcus-okafor",  "name": "Marcus Okafor (mock)",   "role": "Senior PM",               "team": "product",       "weekly_capacity_hours": 40, "q3_allocation_pct": 90,  "skills": ["pricing", "billing", "api-design"] },
+    { "id": "lena-vargas",    "name": "Lena Vargas (mock)",     "role": "Product Designer",        "team": "product",       "weekly_capacity_hours": 40, "q3_allocation_pct": 65,  "skills": ["ux", "dashboard", "design-system"] },
 
-    { "id": "diego-santos",   "name": "Diego Santos (mock)",    "role": "Tech Lead, Ingestion",    "team": "eng-ingestion", "weekly_capacity_hours": 40, "skills": ["rate-limiting", "kafka", "schema-validation"] },
-    { "id": "aisha-rahman",   "name": "Aisha Rahman (mock)",    "role": "Backend Engineer",        "team": "eng-ingestion", "weekly_capacity_hours": 40, "skills": ["go", "streaming", "regional-routing"] },
-    { "id": "tomas-pereira",  "name": "Tomás Pereira (mock)",   "role": "Backend Engineer",        "team": "eng-ingestion", "weekly_capacity_hours": 40, "skills": ["go", "schema", "observability"] },
+    { "id": "diego-santos",   "name": "Diego Santos (mock)",    "role": "Tech Lead, Ingestion",    "team": "eng-ingestion", "weekly_capacity_hours": 40, "q3_allocation_pct": 95,  "skills": ["rate-limiting", "kafka", "schema-validation"] },
+    { "id": "aisha-rahman",   "name": "Aisha Rahman (mock)",    "role": "Backend Engineer",        "team": "eng-ingestion", "weekly_capacity_hours": 40, "q3_allocation_pct": 92,  "skills": ["go", "streaming", "regional-routing"] },
+    { "id": "tomas-pereira",  "name": "Tomás Pereira (mock)",   "role": "Backend Engineer",        "team": "eng-ingestion", "weekly_capacity_hours": 40, "q3_allocation_pct": 55,  "skills": ["go", "schema", "observability"] },
 
-    { "id": "hana-kobayashi", "name": "Hana Kobayashi (mock)",  "role": "Tech Lead, Delivery",     "team": "eng-delivery",  "weekly_capacity_hours": 40, "skills": ["retry-engine", "signatures", "circuit-breakers"] },
-    { "id": "erik-lindqvist", "name": "Erik Lindqvist (mock)",  "role": "Senior Engineer",         "team": "eng-delivery",  "weekly_capacity_hours": 40, "skills": ["replay", "hmac", "backpressure"] },
-    { "id": "nia-oyelaran",   "name": "Nia Oyelaran (mock)",    "role": "Engineer",                "team": "eng-delivery",  "weekly_capacity_hours": 40, "skills": ["go", "queues", "latency"] },
+    { "id": "hana-kobayashi", "name": "Hana Kobayashi (mock)",  "role": "Tech Lead, Delivery",     "team": "eng-delivery",  "weekly_capacity_hours": 40, "q3_allocation_pct": 95,  "skills": ["retry-engine", "signatures", "circuit-breakers"] },
+    { "id": "erik-lindqvist", "name": "Erik Lindqvist (mock)",  "role": "Senior Engineer",         "team": "eng-delivery",  "weekly_capacity_hours": 40, "q3_allocation_pct": 90,  "skills": ["replay", "hmac", "backpressure"] },
+    { "id": "nia-oyelaran",   "name": "Nia Oyelaran (mock)",    "role": "Engineer",                "team": "eng-delivery",  "weekly_capacity_hours": 40, "q3_allocation_pct": 60,  "skills": ["go", "queues", "latency"] },
 
-    { "id": "ravi-deshpande", "name": "Ravi Deshpande (mock)",  "role": "Tech Lead, Platform",     "team": "eng-platform",  "weekly_capacity_hours": 40, "skills": ["rest-api", "authz", "dashboard"] },
-    { "id": "sofia-marchetti","name": "Sofia Marchetti (mock)", "role": "Full-stack Engineer",     "team": "eng-platform",  "weekly_capacity_hours": 40, "skills": ["react", "node", "search"] },
-    { "id": "jonas-bauer",    "name": "Jonas Bauer (mock)",     "role": "Backend Engineer",        "team": "eng-platform",  "weekly_capacity_hours": 40, "skills": ["java", "billing", "analytics"] }
+    { "id": "ravi-deshpande", "name": "Ravi Deshpande (mock)",  "role": "Tech Lead, Platform",     "team": "eng-platform",  "weekly_capacity_hours": 40, "q3_allocation_pct": 92,  "skills": ["rest-api", "authz", "dashboard"] },
+    { "id": "sofia-marchetti","name": "Sofia Marchetti (mock)", "role": "Full-stack Engineer",     "team": "eng-platform",  "weekly_capacity_hours": 40, "q3_allocation_pct": 90,  "skills": ["react", "node", "search"] },
+    { "id": "jonas-bauer",    "name": "Jonas Bauer (mock)",     "role": "Backend Engineer",        "team": "eng-platform",  "weekly_capacity_hours": 40, "q3_allocation_pct": 85,  "skills": ["java", "billing", "analytics"] },
+
+    { "id": "yuki-tanaka",    "name": "Yuki Tanaka (mock)",     "role": "Design Lead",             "team": "design",        "weekly_capacity_hours": 40, "q3_allocation_pct": 100, "skills": ["design-system", "component-library", "ux-audit"] }
   ],
   "function_agents": [
     {
