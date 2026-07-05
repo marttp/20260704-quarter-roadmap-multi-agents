@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from typing import Dict, Any
 
-from fastmcp import FastMCP
+from fastmcp import FastMCP  # type: ignore
 
 from app.tools import (
     load_org,
