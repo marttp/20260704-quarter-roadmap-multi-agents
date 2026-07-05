@@ -122,5 +122,9 @@ class PlanningBriefing(BaseModel):
     capacity: CapacityEnvelope
     decision_required: List[str]
     reviews: List[ItemReview]
-    consensus_count: int = Field(description="Items where both agents take the same position.")
-    dispute_count: int = Field(description="Items where agents disagree — needs a human decision.")
+    consensus_count: int = Field(
+        description="Items where both agents take the same position."
+    )
+    dispute_count: int = Field(
+        description="Items where agents disagree — needs a human decision."
+    )
