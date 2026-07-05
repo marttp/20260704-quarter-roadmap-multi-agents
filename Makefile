@@ -4,7 +4,7 @@
 
 .PHONY: help install playground run lint test data-check dashboard \
         frontend-install frontend-build frontend-dev frontend-typecheck \
-        deploy-scaffold deploy-dry-run deploy-agent-runtime deploy-cloud-run \
+        deploy-scaffold deploy-dry-run deploy-agent-runtime deploy-cloud-run deploy-mcp-cloud-run \
         deploy-iam clean
 
 GOOGLE_CLOUD_PROJECT ?= your-gcp-project-id
@@ -27,6 +27,7 @@ help:
 	@echo "  make deploy-dry-run  - uv lock + agents-cli deploy --dry-run"
 	@echo "  make deploy-agent-runtime - deploy ADK workflow to Agent Runtime (codelab 10)"
 	@echo "  make deploy-cloud-run    - build + deploy FastAPI + Vue SPA to Cloud Run (codelab 09)"
+	@echo "  make deploy-mcp-cloud-run - deploy the standalone MCP server to Cloud Run"
 	@echo "  make deploy-iam      - grant Cloud Run runtime SA roles/aiplatform.user"
 	@echo "  make clean           - remove .venv + artifacts"
 
@@ -92,11 +93,15 @@ deploy-dry-run:
 	agents-cli deploy --dry-run --project $(GOOGLE_CLOUD_PROJECT) --region $(GOOGLE_CLOUD_LOCATION) --no-confirm-project
 
 # Deploy the ADK workflow to Agent Runtime (codelab 10). Run deploy-scaffold first.
-# Captures the runtime id in deployment_metadata.json.
+# Captures the runtime id in deployment_metadata.json. MCP_SERVER_URL points the
+# advisor's tools at the deployed MCP Cloud Run service (see deploy-mcp-cloud-run);
+# leave it empty to fall back to the in-process tools instead.
+MCP_SERVER_URL ?= https://roadmap-mcp-711733680987.us-west1.run.app
 deploy-agent-runtime:
 	uv lock
 	$(MAKE) requirements
-	agents-cli deploy --project $(GOOGLE_CLOUD_PROJECT) --region $(GOOGLE_CLOUD_LOCATION) --no-confirm-project
+	agents-cli deploy --project $(GOOGLE_CLOUD_PROJECT) --region $(GOOGLE_CLOUD_LOCATION) --no-confirm-project \
+	  --update-env-vars MCP_SERVER_URL=$(MCP_SERVER_URL)
 
 # Deploy the FastAPI + Vue SPA to Cloud Run (codelab 09). Sets the env vars the
 # backend needs to call Agent Runtime; --allow-unauthenticated makes the public URL.
