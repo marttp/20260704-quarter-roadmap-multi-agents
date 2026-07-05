@@ -59,10 +59,11 @@ function secondaryAction(): 'prioritize' | 'deprioritize' | 'unblock' | 'cut' {
     <div v-if="item.decision_required" class="actions">
       <button class="primary" @click="emit('decide', { itemId: item.id, action: primaryAction() })">
         <template v-if="item.decision_type === 'unblock_vs_cut'">Unblock</template>
-        <template v-else>↑ Prioritize</template>
+        <template v-else>↑ {{ item.decision_type === 'prioritize_vs_defer_partial' ? 'Prioritize (full)' : 'Prioritize' }}</template>
       </button>
       <button class="danger" @click="emit('decide', { itemId: item.id, action: secondaryAction() })">
         <template v-if="item.decision_type === 'unblock_vs_cut'">Cut</template>
+        <template v-else-if="item.decision_type === 'prioritize_vs_defer_partial'">↡ Defer partial</template>
         <template v-else>↓ Deprioritize</template>
       </button>
     </div>
