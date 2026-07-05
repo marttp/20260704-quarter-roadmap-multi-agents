@@ -106,7 +106,7 @@ deploy-cloud-run:
 	gcloud run deploy $(SERVICE_NAME) \
 	  --source . --region $(GOOGLE_CLOUD_LOCATION) \
 	  --allow-unauthenticated \
-	  --set-env-vars GOOGLE_CLOUD_PROJECT=$(GOOGLE_CLOUD_PROJECT),GOOGLE_CLOUD_LOCATION=$(GOOGLE_CLOUD_LOCATION),AGENT_RUNTIME_ID=$$(test -f deployment_metadata.json && python3 -c "import json; d=json.load(open('deployment_metadata.json')); print(d.get('remote_agent_runtime_id') or d.get('agent_runtime_id') or '')") \
+	  --set-env-vars APP_MODULE=submission_frontend.main:app,GOOGLE_CLOUD_PROJECT=$(GOOGLE_CLOUD_PROJECT),GOOGLE_CLOUD_LOCATION=$(GOOGLE_CLOUD_LOCATION),AGENT_RUNTIME_ID=$$(test -f deployment_metadata.json && python3 -c "import json; d=json.load(open('deployment_metadata.json')); print(d.get('remote_agent_runtime_id') or d.get('agent_runtime_id') or '')") \
 	  --quiet
 
 # Grant the Cloud Run runtime SA roles/aiplatform.user so it can :query Agent Runtime.
