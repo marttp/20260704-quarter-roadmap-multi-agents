@@ -64,9 +64,9 @@ test:
 
 data-check:
 	@uv run python -c "import json, pathlib; \
-		files = list(pathlib.Path('data/promptjang').glob('*.json')); \
+		files = list(pathlib.Path('app/data/promptjang').glob('*.json')); \
 		[json.load(open(f)) for f in files]; \
-		print(f'All {len(files)} data/promptjang/*.json files are valid JSON.')"
+		print(f'All {len(files)} app/data/promptjang/*.json files are valid JSON.')"
 
 SERVICE_NAME ?= quarter-roadmap-copilot
 # Short name (≤26 chars, lowercase) for agents-cli — the directory name
