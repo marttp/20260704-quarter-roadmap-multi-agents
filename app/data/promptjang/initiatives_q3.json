@@ -128,6 +128,8 @@
       "owner_team": "eng-ingestion",
       "customer_champion": "priya-chen",
       "effort_hours_remaining": 600,
+      "partial_hours": 300,
+      "_partial_hours_note": "If the human picks 'defer partial', only this slice (the EU ingest endpoint) is committed; the remaining 300h (regional routing rules + Frankfurt PoP) is deferred to Q4 and does not count against the Q3 budget.",
       "effort_risk": "600h on the Ingestion team that still carries BACKLOG-02 debt. Would push Ingestion to ~115%.",
       "feedback": [
         { "source": "customer", "signal": "3 EU enterprise prospects blocked on data residency", "weight": "high" }
