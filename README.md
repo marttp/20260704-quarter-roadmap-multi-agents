@@ -41,7 +41,7 @@ START
 - **`load_planning_state_node`** — deterministic loader that also runs `redact_confidential` **before** any LLM call (the Security feature).
 - **`summarize_node`** — combines both agents' positions into a `PlanningBriefing` with consensus/dispute counts.
 
-See **[data/README.md](data/README.md)** for the dataset, the four decision candidates, and the capacity envelope that forces a decision.
+See **[app/data/README.md](app/data/README.md)** for the dataset, the four decision candidates, and the capacity envelope that forces a decision.
 
 ## 4. The build (Antigravity + Agents CLI)
 
@@ -159,7 +159,10 @@ agents-cli deploy --project YOUR_PROJECT_ID --region us-west1
 ├── app/
 │   ├── agent.py                   # ADK 2.0 Workflow: load -> planning -> stakeholder -> summarize
 │   ├── models.py                  # Pydantic schemas (agent I/O)
-│   └── tools.py                   # data loaders + redact_confidential
+│   ├── tools.py                   # data loaders + redact_confidential
+│   └── data/                      # synthetic PromptJang dataset (lives inside the package so it ships with the wheel)
+│       ├── README.md
+│       └── promptjang/{org,utilization,initiatives_q1,initiatives_q2,initiatives_q3,events}.json
 ├── frontend/                      # Vue 3 + Vite + TypeScript dashboard source
 │   ├── src/
 │   │   ├── App.vue                # three-column prioritization board
