@@ -16,7 +16,13 @@ def test_load_org_has_teams_and_employees():
     org = load_org()
     assert org["company"]["name"] == "PromptJang"
     team_ids = {t["id"] for t in org["teams"]}
-    assert {"product", "eng-ingestion", "eng-delivery", "eng-platform", "design"} <= team_ids
+    assert {
+        "product",
+        "eng-ingestion",
+        "eng-delivery",
+        "eng-platform",
+        "design",
+    } <= team_ids
     assert len(org["employees"]) == 12
     # Every employee name carries the (mock) suffix — no real-person ambiguity.
     assert all(e["name"].endswith("(mock)") for e in org["employees"])
@@ -46,7 +52,9 @@ def test_load_quarter_initiatives_for_each_quarter():
         data = load_quarter_initiatives(q)
         assert data["quarter"] == q
         assert "initiatives" in data or "backlog_from_past_quarters" in data, q
-        assert isinstance(data.get(expected_status_field) or data.get("quarter_outcome"), (str, dict))
+        assert isinstance(
+            data.get(expected_status_field) or data.get("quarter_outcome"), (str, dict)
+        )
 
 
 def test_load_planning_state_composes_everything():
@@ -54,6 +62,11 @@ def test_load_planning_state_composes_everything():
     assert set(state.keys()) >= {"org", "history", "planning", "decision_required"}
     assert state["planning"]["quarter"] == "Q3-2026"
     # The four decision_required item ids are the demo's forcing function.
-    assert state["decision_required"] == ["BACKLOG-01", "BACKLOG-02", "BACKLOG-03", "Q3-ING-01"]
+    assert state["decision_required"] == [
+        "BACKLOG-01",
+        "BACKLOG-02",
+        "BACKLOG-03",
+        "Q3-ING-01",
+    ]
     # Capacity envelope must show the over-budget delta the agents cite.
     assert state["planning"]["capacity_envelope"]["delta_hours"] == 260
