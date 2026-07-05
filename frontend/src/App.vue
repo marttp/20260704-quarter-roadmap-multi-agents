@@ -148,10 +148,13 @@ async function runReview() {
   reviewLoading.value = true
   reviewStatus.value = null
   try {
-    const result = await runLiveReview()
+    const alreadyCommitted = committed.value.map((it) => it.id)
+    const result = await runLiveReview(alreadyCommitted, committedHours.value)
     if (result.mode === 'live' && result.positions) {
       const updated = applyPositions(result.positions)
-      reviewStatus.value = `✅ Live agents updated ${updated} item${updated === 1 ? '' : 's'}.`
+      reviewStatus.value = updated
+        ? `✅ Live agents updated ${updated} item${updated === 1 ? '' : 's'} still open.`
+        : '✅ Nothing left to decide — every item is already committed.'
       persistDecisions()
     } else if (result.mode === 'synthetic') {
       reviewStatus.value = '💡 Agent Runtime not configured yet — showing the pre-authored scenario.'
@@ -314,7 +317,10 @@ function onDecide(payload: { itemId: string; action: DecideAction }) {
       </p>
     </section>
 
-    <ChatPanel />
+    <ChatPanel
+      :already-committed="committed.map((it) => it.id)"
+      :committed-hours="committedHours"
+    />
   </main>
 
   <main v-else>
