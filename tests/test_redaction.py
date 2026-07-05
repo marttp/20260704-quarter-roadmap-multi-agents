@@ -45,7 +45,7 @@ def test_handles_non_string_input_by_recursing_over_json():
     # If handed a dict (e.g. a planning item), redact_confidential should
     # JSON-serialize it and still redact any names in the string form.
     payload = {"champion": "Priya Chen (mock)", "note": "no PII here"}
-    out = redact_confidential(payload)  # type: ignore[arg-type]
+    out = redact_confidential(payload)  # type: ignore
     assert "Priya Chen" not in out
     assert "[REDACTED-PERSON]" in out
 
