@@ -4,6 +4,7 @@ import type { PlanningItem, PlanningState } from './types'
 import { fetchPlanningState } from './api'
 import ItemCard from './components/ItemCard.vue'
 import CapacityBanner from './components/CapacityBanner.vue'
+import ChatPanel from './components/ChatPanel.vue'
 
 const state = ref<PlanningState | null>(null)
 const error = ref<string | null>(null)
@@ -138,6 +139,8 @@ function onDecide(payload: { itemId: string; action: 'prioritize' | 'deprioritiz
         Q1 commentary: {{ state.commentary?.['Q1-2026'] }}
       </p>
     </section>
+
+    <ChatPanel />
   </main>
 
   <main v-else>
