@@ -109,6 +109,20 @@ deploy-cloud-run:
 	  --set-env-vars APP_MODULE=submission_frontend.main:app,GOOGLE_CLOUD_PROJECT=$(GOOGLE_CLOUD_PROJECT),GOOGLE_CLOUD_LOCATION=$(GOOGLE_CLOUD_LOCATION),AGENT_RUNTIME_ID=$$(test -f deployment_metadata.json && python3 -c "import json; d=json.load(open('deployment_metadata.json')); print(d.get('remote_agent_runtime_id') or d.get('agent_runtime_id') or '')") \
 	  --quiet
 
+# Deploy the standalone MCP server as its own Cloud Run service (same Dockerfile,
+# reusing the APP_MODULE switch). --allow-unauthenticated: the data is synthetic
+# mock data already public in this repo, so a public read-only endpoint is an
+# acceptable trade-off for a same-day deploy. After this, set MCP_SERVER_URL on
+# the Agent Runtime deploy (see `make deploy-agent-runtime`) to point the
+# advisor's tools at it instead of the in-process fallback.
+MCP_SERVICE_NAME ?= roadmap-mcp
+deploy-mcp-cloud-run:
+	gcloud run deploy $(MCP_SERVICE_NAME) \
+	  --source . --region $(GOOGLE_CLOUD_LOCATION) \
+	  --allow-unauthenticated \
+	  --set-env-vars APP_MODULE=mcp_server.roadmap_mcp:app \
+	  --quiet
+
 # Grant the Cloud Run runtime SA roles/aiplatform.user so it can :query Agent Runtime.
 deploy-iam:
 	@PROJECT_NUM=$$(gcloud projects describe $(GOOGLE_CLOUD_PROJECT) --format="value(projectNumber)"); \
