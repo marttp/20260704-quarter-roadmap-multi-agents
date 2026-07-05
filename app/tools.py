@@ -19,8 +19,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 # Resolve the data directory relative to this file so it works regardless of CWD.
-# Layout: <repo>/app/tools.py  ->  <repo>/data/promptjang/
-DATA_DIR: Path = Path(__file__).resolve().parent.parent / "data" / "promptjang"
+# Layout: <repo>/app/tools.py  ->  <repo>/app/data/promptjang/
+# data/ lives INSIDE the app package so it ships with the wheel on Agent Runtime
+# (root-level non-Python files like LICENSE/README are stripped by agents-cli's tarball).
+DATA_DIR: Path = Path(__file__).resolve().parent / "data" / "promptjang"
 
 
 def _load_json(filename: str) -> Dict[str, Any]:
