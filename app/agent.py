@@ -29,7 +29,8 @@ from google.adk.agents import LlmAgent
 from google.adk.agents.context import Context
 from google.adk.apps.app import App
 from google.adk.events.event import Event
-from google.adk.workflow import START, Edge, Workflow, node
+from google.adk.events.event_actions import EventActions
+from google.adk.workflow import START, Workflow, node
 
 from app.models import (
     AgentPosition,
@@ -60,8 +61,10 @@ def load_planning_state_node(ctx: Context, node_input: Any):
     context_json = redact_confidential(_format_planning_context(state))
     # Stash both the slim agent context (string) and the raw state (dict) for downstream nodes.
     yield Event(
-        data=context_json,
-        state={"planning_context": context_json, "raw_state": state},
+        output=context_json,
+        actions=EventActions(
+            state_delta={"planning_context": context_json, "raw_state": state}
+        ),
     )
 
 
@@ -74,9 +77,8 @@ def _format_planning_context(state: Dict[str, Any]) -> str:
     """
     planning = state["planning"]
     decision_ids = set(planning.get("decision_required", []))
-    all_items = (
-        planning.get("backlog_from_past_quarters", [])
-        + planning.get("proposed_for_q3", [])
+    all_items = planning.get("backlog_from_past_quarters", []) + planning.get(
+        "proposed_for_q3", []
     )
     payload = {
         "quarter": planning.get("quarter"),
@@ -142,7 +144,7 @@ def build_stakeholder_input_node(ctx: Context, node_input: Any):
         "planning_context": json.loads(context_json) if context_json else {},
         "planning_agent_positions": _normalize_positions(planning_positions),
     }
-    yield Event(data=json.dumps(combined, ensure_ascii=False, indent=2))
+    yield Event(output=json.dumps(combined, ensure_ascii=False, indent=2))
 
 
 stakeholder_agent = LlmAgent(
@@ -182,9 +184,8 @@ def summarize_node(ctx: Context, node_input: Any):
     stakeholder_positions = _positions_by_item(ctx.state.get("stakeholder_positions"))
 
     # Build a lookup of decision_type per item.
-    all_items = (
-        planning.get("backlog_from_past_quarters", [])
-        + planning.get("proposed_for_q3", [])
+    all_items = planning.get("backlog_from_past_quarters", []) + planning.get(
+        "proposed_for_q3", []
     )
     decision_type_by_id = {
         it.get("id"): it.get("decision_type", "auto_keep") for it in all_items
@@ -219,7 +220,7 @@ def summarize_node(ctx: Context, node_input: Any):
         consensus_count=consensus,
         dispute_count=dispute,
     )
-    yield Event(data=briefing.model_dump_json())
+    yield Event(output=briefing.model_dump_json())
 
 
 # --------------------------------------------------------------------------- #
@@ -244,13 +245,21 @@ def _normalize_positions(raw: Any) -> List[Dict[str, Any]]:
         return [dict(p) for p in raw]
     # Pydantic model instance.
     if hasattr(raw, "positions"):
-        return [p.model_dump() if hasattr(p, "model_dump") else dict(p) for p in raw.positions]
+        return [
+            p.model_dump() if hasattr(p, "model_dump") else dict(p)
+            for p in raw.positions
+        ]
     return []
 
 
 def _positions_by_item(raw: Any) -> Dict[str, Dict[str, Any]]:
     """Index positions by item_id for O(1) lookup in summarize_node."""
-    return {p.get("item_id"): p for p in _normalize_positions(raw) if p.get("item_id")}
+    positions = {}
+    for p in _normalize_positions(raw):
+        item_id = p.get("item_id")
+        if item_id:
+            positions[str(item_id)] = p
+    return positions
 
 
 # --------------------------------------------------------------------------- #
