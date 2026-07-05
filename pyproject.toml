@@ -12,8 +12,7 @@ dependencies = [
     "a2a-sdk[http-server]~=0.3.22",
     "aiohttp>=3.13.4",
     "gcsfs>=2024.11.0",
-    "google-adk[gcp]>=2.0.0,<3.0.0",
-    "google-cloud-aiplatform[agent-engines,evaluation]>=1.156.0",
+    "google-adk>=2.0.0,<3.0.0",
     "google-cloud-logging>=3.12.0,<4.0.0",
     "opentelemetry-instrumentation-google-genai>=0.1.0,<1.0.0",
     "protobuf>=6.31.1,<7.0.0",
@@ -38,14 +37,21 @@ security = [
 # Tests.
 dev = [
     "pytest>=8.0",
+    "google-cloud-aiplatform[agent-engines,evaluation]>=1.156.0",
 ]
 # Local MCP server exposing the dataset to Antigravity / agents-cli (codelab 04 pattern).
 mcp = [
     "fastmcp>=2.0",
 ]
+# Linting.
+lint = [
+    "ruff>=0.4",
+    "codespell>=2.2",
+    "ty",
+]
 # Convenience aggregate.
 all = [
-    "quarter-roadmap-copilot[web,security,dev,mcp]",
+    "quarter-roadmap-copilot[web,security,dev,mcp,lint]",
 ]
 
 [build-system]
@@ -68,3 +74,7 @@ addopts = "-ra -q --ignore=tests/integration --ignore=tests/eval"
 # Pin the interpreter to a stable patch line; uv will fetch it if missing.
 [tool.uv]
 required-version = ">=0.4.0"
+
+# --- codespell ---
+[tool.codespell]
+skip = "./frontend/package-lock.json,./submission_frontend/static/spa/*,./node_modules/*,./.venv/*"
