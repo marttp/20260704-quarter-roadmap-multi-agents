@@ -24,7 +24,7 @@ from app.tools import load_planning_state
 from submission_frontend.agent_runtime import (
     agent_runtime_is_configured,
     call_agent_runtime,
-    extract_briefing,
+    extract_agent_positions,
     extract_final_text,
 )
 
@@ -82,23 +82,24 @@ def health():
 
 @app.post("/api/review")
 def api_review(prompt: str = "Review the Q3 plan and surface both agents' positions."):
-    """Run the agent review.
+    """Run the live agent review.
 
     - If `AGENT_RUNTIME_ID` + `GOOGLE_CLOUD_PROJECT` are set (post-deploy), call
-      Agent Runtime's :query endpoint and return the live PlanningBriefing.
+      Agent Runtime and return each item's fresh planning_agent + stakeholder_agent
+      positions, keyed by item_id, so the UI can overwrite the static dataset text.
     - Otherwise, fall back to the synthetic planning state (both agents'
       positions are read from the dataset) so local dev works pre-deploy.
     """
     if agent_runtime_is_configured():
         try:
             raw = call_agent_runtime(prompt)
-            briefing = extract_briefing(raw)
-            if briefing is not None:
-                return {"mode": "live", "briefing": briefing, "raw": raw}
+            positions = extract_agent_positions(raw)
+            if positions:
+                return {"mode": "live", "positions": positions, "session_id": raw.get("session_id")}
             return {
                 "mode": "live_unparsed",
                 "raw": raw,
-                "note": "Agent responded but briefing shape was unrecognized.",
+                "note": "Agent responded but no positions were parseable.",
             }
         except Exception as exc:  # noqa: BLE001 — surface the failure to the UI
             return {"mode": "live_error", "error": str(exc)}
