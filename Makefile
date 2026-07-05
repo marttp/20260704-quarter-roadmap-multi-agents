@@ -74,7 +74,7 @@ SERVICE_NAME ?= quarter-roadmap-copilot
 AGENTS_CLI_NAME ?= quarter-roadmap-copilot
 
 deploy-scaffold:
-	agents-cli scaffold enhance --deployment-target agent_runtime --name $(AGENTS_CLI_NAME) --yes
+	agents-cli scaffold enhance --deployment-target agent_runtime --name $(AGENTS_CLI_NAME) --adk --yes
 
 deploy-dry-run:
 	uv lock
