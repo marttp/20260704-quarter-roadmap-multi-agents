@@ -98,6 +98,58 @@ def api_review(prompt: str = "Review the Q3 plan and surface both agents' positi
     return {"mode": "synthetic", "state": _build_view_model()}
 
 
+@app.post("/api/chat")
+def api_chat(body: dict):
+    """Free-form chat with the advisor agent.
+
+    Sends the user's question to Agent Runtime; the workflow's classify_input_node
+    routes it to the advisor_agent (which has data tools). Returns the agent's
+    text answer.
+    """
+    question = (body or {}).get("question", "").strip()
+    if not question:
+        return {"mode": "error", "error": "No question provided."}
+
+    if agent_runtime_is_configured():
+        try:
+            raw = call_agent_runtime(question)
+            # The advisor's free-form answer lands in the response content/output.
+            answer = _extract_chat_answer(raw)
+            return {"mode": "live", "answer": answer, "raw": raw}
+        except Exception as exc:  # noqa: BLE001
+            return {"mode": "live_error", "error": str(exc)}
+    return {
+        "mode": "synthetic",
+        "answer": (
+            "Advisor agent is not deployed yet. Once you run `make deploy-agent-runtime`, "
+            "I can answer questions like 'who can I move to the Delivery team?' using the "
+            "live org + utilization data."
+        ),
+    }
+
+
+def _extract_chat_answer(raw: dict) -> str:
+    """Best-effort pull of the advisor's text answer from an Agent Runtime response."""
+    # Walk common content locations.
+    for path in (("output",), ("content",), ("response", "content"), ("result", "output")):
+        node: Any = raw
+        try:
+            for key in path:
+                node = node[key]
+        except (KeyError, IndexError, TypeError):
+            continue
+        if isinstance(node, str) and node.strip():
+            return node
+        if isinstance(node, dict):
+            # ADK content blocks often look like {"parts": [{"text": "..."}]}.
+            parts = node.get("parts") if "parts" in node else None
+            if parts:
+                texts = [p.get("text", "") for p in parts if isinstance(p, dict)]
+                if any(t.strip() for t in texts):
+                    return "".join(texts)
+    return "(Agent responded but no parseable text was found.)"
+
+
 @app.get("/")
 def spa_index():
     """Serve the built Vue SPA's index.html."""
