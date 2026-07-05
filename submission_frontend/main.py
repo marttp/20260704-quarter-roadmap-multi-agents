@@ -27,7 +27,7 @@ from submission_frontend.agent_runtime import (
 )
 
 BASE_DIR = Path(__file__).resolve().parent
-SPA_DIR = BASE_DIR / "static" / "spa"           # Vite build output (frontend/)
+SPA_DIR = BASE_DIR / "static" / "spa"  # Vite build output (frontend/)
 SPA_INDEX = SPA_DIR / "index.html"
 
 app = FastAPI(
@@ -87,7 +87,11 @@ def api_review(prompt: str = "Review the Q3 plan and surface both agents' positi
             briefing = extract_briefing(raw)
             if briefing is not None:
                 return {"mode": "live", "briefing": briefing, "raw": raw}
-            return {"mode": "live_unparsed", "raw": raw, "note": "Agent responded but briefing shape was unrecognized."}
+            return {
+                "mode": "live_unparsed",
+                "raw": raw,
+                "note": "Agent responded but briefing shape was unrecognized.",
+            }
         except Exception as exc:  # noqa: BLE001 — surface the failure to the UI
             return {"mode": "live_error", "error": str(exc)}
     # Synthetic fallback: the dataset already encodes both agents' positions.
@@ -121,6 +125,9 @@ def spa_catch_all(path: str):
     if not SPA_INDEX.exists():
         return JSONResponse(
             status_code=503,
-            content={"error": "SPA not built.", "fix": "Run `cd frontend && npm run build`."},
+            content={
+                "error": "SPA not built.",
+                "fix": "Run `cd frontend && npm run build`.",
+            },
         )
     return FileResponse(SPA_INDEX)
