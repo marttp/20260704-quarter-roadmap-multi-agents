@@ -78,12 +78,12 @@ deploy-scaffold:
 
 deploy-dry-run:
 	uv lock
-	agents-cli deploy --dry-run
+	agents-cli deploy --dry-run --project $(GOOGLE_CLOUD_PROJECT) --region $(GOOGLE_CLOUD_LOCATION) --no-confirm-project
 
 # Deploy the ADK workflow to Agent Runtime (codelab 10). Run deploy-scaffold first.
 # Captures the runtime id in deployment_metadata.json.
 deploy-agent-runtime:
-	agents-cli deploy --project $(GOOGLE_CLOUD_PROJECT) --region $(GOOGLE_CLOUD_LOCATION)
+	agents-cli deploy --project $(GOOGLE_CLOUD_PROJECT) --region $(GOOGLE_CLOUD_LOCATION) --no-confirm-project
 
 # Deploy the FastAPI + Vue SPA to Cloud Run (codelab 09). Sets the env vars the
 # backend needs to call Agent Runtime; --allow-unauthenticated makes the public URL.
