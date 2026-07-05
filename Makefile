@@ -68,8 +68,13 @@ data-check:
 		[json.load(open(f)) for f in files]; \
 		print(f'All {len(files)} data/promptjang/*.json files are valid JSON.')"
 
+SERVICE_NAME ?= quarter-roadmap-copilot
+# Short name (≤26 chars, lowercase) for agents-cli — the directory name
+# (20260704-quarter-roadmap-multi-agents) exceeds agents-cli's 26-char limit.
+AGENTS_CLI_NAME ?= quarter-roadmap-copilot
+
 deploy-scaffold:
-	agents-cli scaffold enhance --deployment-target agent_runtime --yes
+	agents-cli scaffold enhance --deployment-target agent_runtime --name $(AGENTS_CLI_NAME) --yes
 
 deploy-dry-run:
 	uv lock
