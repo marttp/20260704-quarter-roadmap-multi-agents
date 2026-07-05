@@ -5,4 +5,4 @@ project_name = "quarter-roadmap-copilot"
 project_id = "tpc-ai-agent"
 
 # The Google Cloud region you will use to deploy the infrastructure
-region = "us-east1"
+region = "us-west1"
