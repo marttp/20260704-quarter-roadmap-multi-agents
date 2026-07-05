@@ -2,7 +2,7 @@ name: "quarter-roadmap-copilot"
 acli_version: "1.0.0"
 agent_directory: "app"
 region: "us-east1"
-base_template: "local_20260704-quarter-roadmap-multi-agents"
+base_template: "adk"
 generated_at: "2026-07-05T01:59:47.815278+00:00"
 language: "python"
 create_params:
