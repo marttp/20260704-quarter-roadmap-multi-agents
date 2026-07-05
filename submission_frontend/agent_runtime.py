@@ -142,6 +142,42 @@ def extract_final_text(runtime_response: Dict[str, Any]) -> str:
     return "(Agent responded but no parseable text was found.)"
 
 
+def extract_agent_positions(runtime_response: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """Merge planning_agent + stakeholder_agent AgentPositionsOutput events into
+    one dict per item_id: {item_id: {planning_position, planning_reason,
+    stakeholder_position, stakeholder_reason}}.
+
+    summarize_node (a plain function node, not an LlmAgent) doesn't emit its own
+    author-tagged content event in the stream, so there's no single combined
+    briefing to pull — this reconstructs the same per-item view directly from
+    both agents' raw structured output.
+    """
+    merged: Dict[str, Dict[str, Any]] = {}
+    for event in runtime_response.get("events", []):
+        author = event.get("author")
+        if author not in ("planning_agent", "stakeholder_agent"):
+            continue
+        text = _event_text(event)
+        if not text.strip():
+            continue
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            continue
+        positions = parsed.get("positions") if isinstance(parsed, dict) else None
+        if not positions:
+            continue
+        prefix = "planning" if author == "planning_agent" else "stakeholder"
+        for p in positions:
+            item_id = p.get("item_id")
+            if not item_id:
+                continue
+            merged.setdefault(item_id, {})
+            merged[item_id][f"{prefix}_position"] = p.get("position")
+            merged[item_id][f"{prefix}_reason"] = p.get("reason")
+    return merged
+
+
 def extract_briefing(runtime_response: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Best-effort extraction of a structured (JSON) agent output from the
     streamed events — e.g. an AgentPositionsOutput or PlanningBriefing.
