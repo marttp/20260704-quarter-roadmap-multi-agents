@@ -177,6 +177,31 @@ main {
   background: var(--ok);
 }
 
+.live-review-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.live-review-row button.live-review {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  padding: 8px 16px;
+}
+
+.live-review-row button.live-review:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.live-review-status {
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .columns {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
