@@ -12,6 +12,7 @@ and `cd frontend && npm run dev` (Vite on :5173).
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Dict
 
@@ -81,25 +82,44 @@ def health():
 
 
 @app.post("/api/review")
-def api_review(prompt: str = "Review the Q3 plan and surface both agents' positions."):
+def api_review(body: dict | None = None):
     """Run the live agent review.
 
     - If `AGENT_RUNTIME_ID` + `GOOGLE_CLOUD_PROJECT` are set (post-deploy), call
       Agent Runtime and return each item's fresh planning_agent + stakeholder_agent
       positions, keyed by item_id, so the UI can overwrite the static dataset text.
+    - `body` may carry the human's current board state:
+      {"already_committed": [item_id, ...], "committed_hours": int}. When present,
+      the agents reason only about the remaining items against the remaining
+      budget (see app/agent.py's load_planning_state_node) instead of replaying
+      the original scenario every time.
     - Otherwise, fall back to the synthetic planning state (both agents'
       positions are read from the dataset) so local dev works pre-deploy.
     """
+    body = body or {}
+    already_committed = body.get("already_committed") or []
+    committed_hours = body.get("committed_hours") or 0
+    if already_committed:
+        prompt = json.dumps(
+            {"already_committed": already_committed, "committed_hours": committed_hours}
+        )
+    else:
+        prompt = "Review the Q3 plan and surface both agents' positions."
+
     if agent_runtime_is_configured():
         try:
             raw = call_agent_runtime(prompt)
             positions = extract_agent_positions(raw)
-            if positions:
+            # An empty dict is a legitimate outcome (everything's already
+            # committed, so both agents correctly returned no positions) as
+            # long as the agents actually ran. Only flag "unparsed" if there
+            # were no events at all, which means the call itself came back empty.
+            if raw.get("events"):
                 return {"mode": "live", "positions": positions, "session_id": raw.get("session_id")}
             return {
                 "mode": "live_unparsed",
                 "raw": raw,
-                "note": "Agent responded but no positions were parseable.",
+                "note": "Agent Runtime returned no events.",
             }
         except Exception as exc:  # noqa: BLE001 — surface the failure to the UI
             return {"mode": "live_error", "error": str(exc)}
@@ -107,21 +127,44 @@ def api_review(prompt: str = "Review the Q3 plan and surface both agents' positi
     return {"mode": "synthetic", "state": _build_view_model()}
 
 
+def _build_advisor_message(question: str, already_committed: list, committed_hours: int) -> str:
+    """Prefix the question with the current Q3 commit status so the advisor
+    reasons about what's actually already decided, not just the original
+    static scenario. Kept as plain text (not JSON) since this path must stay
+    a genuine question the LLM reads — the advisor's own tools can look up
+    the total budget, we just state the facts the dashboard already knows.
+    """
+    if not already_committed:
+        return question
+    items_str = ", ".join(already_committed)
+    return (
+        f"[Context: the human has already committed {len(already_committed)} item(s) "
+        f"to Q3 ({items_str}), totaling {committed_hours}h so far. Use read_initiatives_tool "
+        "to check the remaining budget before answering.] "
+        f"{question}"
+    )
+
+
 @app.post("/api/chat")
 def api_chat(body: dict):
     """Free-form chat with the advisor agent.
 
-    Sends the user's question to Agent Runtime; the workflow's classify_input_node
-    routes it to the advisor_agent (which has data tools). Returns the agent's
-    text answer.
+    Sends the user's question (prefixed with the current Q3 commit status, if
+    any) to Agent Runtime; the workflow's classify_input_node routes it to the
+    advisor_agent (which has data tools). Returns the agent's text answer.
     """
-    question = (body or {}).get("question", "").strip()
+    body = body or {}
+    question = (body.get("question") or "").strip()
     if not question:
         return {"mode": "error", "error": "No question provided."}
 
+    already_committed = body.get("already_committed") or []
+    committed_hours = body.get("committed_hours") or 0
+    message = _build_advisor_message(question, already_committed, committed_hours)
+
     if agent_runtime_is_configured():
         try:
-            raw = call_agent_runtime(question)
+            raw = call_agent_runtime(message)
             # The advisor's free-form answer is the last event's text.
             answer = extract_final_text(raw)
             return {"mode": "live", "answer": answer, "raw": raw}
