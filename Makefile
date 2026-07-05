@@ -77,8 +77,14 @@ deploy-scaffold:
 	agents-cli scaffold enhance --deployment-target agent_runtime --name $(AGENTS_CLI_NAME) --adk --yes
 
 requirements:
-	uv export --no-dev --no-hashes --format requirements-txt --output-file requirements.txt
-	grep -v "^-e \.$$" requirements.txt > requirements.tmp && mv requirements.tmp requirements.txt
+	echo "a2a-sdk[http-server]~=0.3.22" > requirements.txt
+	echo "aiohttp>=3.13.4" >> requirements.txt
+	echo "gcsfs>=2024.11.0" >> requirements.txt
+	echo "google-adk>=2.0.0,<3.0.0" >> requirements.txt
+	echo "google-cloud-logging>=3.12.0,<4.0.0" >> requirements.txt
+	echo "opentelemetry-instrumentation-google-genai>=0.1.0,<1.0.0" >> requirements.txt
+	echo "protobuf>=6.31.1,<7.0.0" >> requirements.txt
+	echo "pydantic>=2.6,<3.0" >> requirements.txt
 
 deploy-dry-run:
 	uv lock
@@ -88,6 +94,8 @@ deploy-dry-run:
 # Deploy the ADK workflow to Agent Runtime (codelab 10). Run deploy-scaffold first.
 # Captures the runtime id in deployment_metadata.json.
 deploy-agent-runtime:
+	uv lock
+	$(MAKE) requirements
 	agents-cli deploy --project $(GOOGLE_CLOUD_PROJECT) --region $(GOOGLE_CLOUD_LOCATION) --no-confirm-project
 
 # Deploy the FastAPI + Vue SPA to Cloud Run (codelab 09). Sets the env vars the
@@ -98,12 +106,13 @@ deploy-cloud-run:
 	gcloud run deploy $(SERVICE_NAME) \
 	  --source . --region $(GOOGLE_CLOUD_LOCATION) \
 	  --allow-unauthenticated \
-	  --set-env-vars GOOGLE_CLOUD_PROJECT=$(GOOGLE_CLOUD_PROJECT),GOOGLE_CLOUD_LOCATION=$(GOOGLE_CLOUD_LOCATION),AGENT_RUNTIME_ID=$$(test -f deployment_metadata.json && python3 -c "import json,sys;print(json.load(open('deployment_metadata.json')).get('agent_runtime_id',''))") \
+	  --set-env-vars GOOGLE_CLOUD_PROJECT=$(GOOGLE_CLOUD_PROJECT),GOOGLE_CLOUD_LOCATION=$(GOOGLE_CLOUD_LOCATION),AGENT_RUNTIME_ID=$$(test -f deployment_metadata.json && python3 -c "import json; d=json.load(open('deployment_metadata.json')); print(d.get('remote_agent_runtime_id') or d.get('agent_runtime_id') or '')") \
 	  --quiet
 
 # Grant the Cloud Run runtime SA roles/aiplatform.user so it can :query Agent Runtime.
 deploy-iam:
-	@RUNNER_SA=$(GOOGLE_CLOUD_PROJECT)-compute@developer.gserviceaccount.com; \
+	@PROJECT_NUM=$$(gcloud projects describe $(GOOGLE_CLOUD_PROJECT) --format="value(projectNumber)"); \
+	RUNNER_SA=$$PROJECT_NUM-compute@developer.gserviceaccount.com; \
 	gcloud projects add-iam-policy-binding $(GOOGLE_CLOUD_PROJECT) \
 	  --member="serviceAccount:$$RUNNER_SA" \
 	  --role="roles/aiplatform.user" --quiet
