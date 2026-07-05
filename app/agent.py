@@ -29,6 +29,7 @@ Built on the Agent Development Kit 2.0 graph Workflow API (codelab 06 pattern).
 from __future__ import annotations
 
 import json
+import os
 from typing import Any, Dict, List
 
 from google.adk.agents import LlmAgent
@@ -326,6 +327,26 @@ def read_initiatives_tool(quarter: str = "Q3-2026") -> str:
     )
 
 
+def _advisor_tools() -> list:
+    """Advisor's data tools. If MCP_SERVER_URL is set (the standalone MCP server
+    deployed as its own Cloud Run service), route through it via McpToolset so
+    the advisor genuinely calls out over MCP. Otherwise fall back to the direct
+    in-process tools below — same data, no extra network hop or dependency.
+    """
+    mcp_server_url = os.environ.get("MCP_SERVER_URL")
+    if mcp_server_url:
+        from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
+
+        return [
+            McpToolset(
+                connection_params=StreamableHTTPConnectionParams(
+                    url=f"{mcp_server_url.rstrip('/')}/mcp"
+                )
+            )
+        ]
+    return [read_org_tool, read_utilization_tool, read_initiatives_tool]
+
+
 advisor_agent = LlmAgent(
     name="advisor_agent",
     model=DEFAULT_MODEL,
@@ -333,7 +354,7 @@ advisor_agent = LlmAgent(
         "You are the ROADMAP ADVISOR for PromptJang, a webhook reliability & observability company. "
         "You answer the human planner's free-form questions about the organization, team capacity, "
         "utilization history, and the Q3 roadmap.\n\n"
-        "Use your tools (read_org_tool, read_utilization_tool, read_initiatives_tool) to read the data "
+        "Use your tools to read the org structure, utilization history, and Q3 initiatives data "
         "BEFORE answering. Ground every answer in the data; if the data doesn't cover something, say so.\n\n"
         "For 'who can I move' or 'who can work on X' questions, follow this order: "
         "(1) if the question names or implies a specific backlog/initiative item, look it up via "
@@ -349,7 +370,7 @@ advisor_agent = LlmAgent(
         "decision_required items matter most.\n\n"
         "Answer in 3–6 sentences. Use plain language — the human is a planner, not an engineer."
     ),
-    tools=[read_org_tool, read_utilization_tool, read_initiatives_tool],
+    tools=_advisor_tools(),
 )
 
 
