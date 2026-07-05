@@ -23,7 +23,7 @@ import uuid
 from collections.abc import Iterator
 from typing import Any
 
-import pytest
+import pytest  # type: ignore
 import requests
 from a2a.types import (
     Message,
@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "http://127.0.0.1:8000"
 RUN_SSE_URL = BASE_URL + "/run_sse"
-A2A_RPC_URL = BASE_URL + "/a2a/app/"
+A2A_RPC_URL = BASE_URL + "/a2a/quarter_roadmap_copilot/"
 AGENT_CARD_URL = A2A_RPC_URL + ".well-known/agent-card.json"
 FEEDBACK_URL = BASE_URL + "/feedback"
 
@@ -211,7 +211,7 @@ def test_a2a_chat_stream(server_fixture: subprocess.Popen[str]) -> None:
         and r.root.result.final is True
     ]
     assert final_responses, "No final response received"
-    assert final_responses[-1].result.status.state == "completed"
+    assert final_responses[-1].result.status.state == "completed"  # type: ignore
 
 
 def test_agent_card(server_fixture: subprocess.Popen[str]) -> None:
