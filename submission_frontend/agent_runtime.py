@@ -1,8 +1,10 @@
-"""Agent Runtime REST client — calls the deployed ADK agent's :query endpoint.
+"""Agent Runtime REST client — calls the deployed ADK agent via its native
+``:query`` / ``:streamQuery`` contract (the ``{class_method, input}`` shape
+served by ``app/app_utils/reasoning_engine_adapter.py``).
 
-Codelab 09 pattern. On Cloud Run, Application Default Credentials (ADC) resolve
-via the metadata server using the runtime SA (must have roles/aiplatform.user).
-Locally, `gcloud auth application-default login` provides ADC.
+On Cloud Run, Application Default Credentials (ADC) resolve via the metadata
+server using the runtime SA (must have roles/aiplatform.user). Locally,
+`gcloud auth application-default login` provides ADC.
 
 If AGENT_RUNTIME_ID is unset (local dev before the agent is deployed), callers
 should fall back to the synthetic planning state — see submission_frontend/main.py.
@@ -12,15 +14,17 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import google.auth
 import google.auth.transport.requests
 import requests
 
+DASHBOARD_USER_ID = "dashboard-user"
 
-def _runtime_query_url() -> str:
-    """Build the Agent Runtime :query URL from env vars."""
+
+def _service_base_url() -> str:
+    """Build the Agent Runtime resource URL (no :query/:streamQuery suffix)."""
     project = os.environ.get("GOOGLE_CLOUD_PROJECT")
     runtime_id = os.environ.get("AGENT_RUNTIME_ID")
     if not (project and runtime_id):
@@ -28,7 +32,7 @@ def _runtime_query_url() -> str:
             "AGENT_RUNTIME_ID and GOOGLE_CLOUD_PROJECT must be set to call Agent Runtime. "
             "Run `agents-cli deploy` and copy the runtime id from deployment_metadata.json."
         )
-    
+
     # If AGENT_RUNTIME_ID is a full resource name path, parse project, location, and engine ID
     if "projects/" in runtime_id:
         parts = runtime_id.split("/")
@@ -41,7 +45,7 @@ def _runtime_query_url() -> str:
 
     return (
         f"https://{location}-aiplatform.googleapis.com/v1/projects/{project}/"
-        f"locations/{location}/reasoningEngines/{engine_id}:query"
+        f"locations/{location}/reasoningEngines/{engine_id}"
     )
 
 
@@ -62,57 +66,101 @@ def agent_runtime_is_configured() -> bool:
     )
 
 
+def _create_session(base_url: str, headers: Dict[str, str], user_id: str) -> str:
+    """Create an Agent Runtime session via the ``async_create_session`` class method."""
+    resp = requests.post(
+        f"{base_url}:query",
+        headers=headers,
+        json={"class_method": "async_create_session", "input": {"user_id": user_id}},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    session_id = resp.json().get("output", {}).get("id")
+    if not session_id:
+        raise RuntimeError("Agent Runtime returned a session with no id.")
+    return session_id
+
+
 def call_agent_runtime(
     prompt: str = "Review the Q3 plan and surface both agents' positions.",
+    user_id: str = DASHBOARD_USER_ID,
 ) -> Dict[str, Any]:
-    """POST to Agent Runtime :query and return the parsed response.
+    """Run the deployed workflow via ``async_create_session`` + ``async_stream_query``.
 
-    The agent (app/agent.py) runs on Agent Runtime with the bundled dataset;
-    the prompt just triggers the workflow. The response shape follows the
-    Agent Runtime REST schema — the workflow's PlanningBriefing lands in the
-    final output.
+    This mirrors exactly what `agents-cli run --mode adk` does against Agent
+    Runtime (verified working): create a session with a plain :query call,
+    then stream the message via :streamQuery. The response is newline-delimited
+    JSON events (ADK's standard `{author, content: {parts: [{text}]}}` shape).
     """
-    url = _runtime_query_url()
+    base_url = _service_base_url()
     headers = {
         "Authorization": f"Bearer {_access_token()}",
         "Content-Type": "application/json",
     }
-    # Codelab 09 wraps the user message under input.message.
-    payload: Dict[str, Any] = {"input": {"message": prompt}}
 
-    resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=120)
-    resp.raise_for_status()
-    return resp.json()  # caller interprets the response shape
+    session_id = _create_session(base_url, headers, user_id)
+
+    payload = {
+        "class_method": "async_stream_query",
+        "input": {"user_id": user_id, "session_id": session_id, "message": prompt},
+    }
+
+    events: List[Dict[str, Any]] = []
+    with requests.post(
+        f"{base_url}:streamQuery", headers=headers, json=payload, stream=True, timeout=120
+    ) as resp:
+        resp.raise_for_status()
+        for line in resp.iter_lines(decode_unicode=True):
+            if not line:
+                continue
+            try:
+                events.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+
+    return {"events": events, "session_id": session_id}
+
+
+def _event_text(event: Dict[str, Any]) -> str:
+    """Concatenate the text parts of a single ADK event, or '' if none."""
+    content = event.get("content")
+    if not isinstance(content, dict):
+        return ""
+    parts = content.get("parts") or []
+    texts = [p.get("text", "") for p in parts if isinstance(p, dict)]
+    return "".join(t for t in texts if t)
+
+
+def extract_final_text(runtime_response: Dict[str, Any]) -> str:
+    """The most recent non-empty text across all streamed events (e.g. the
+    advisor's answer, or the last agent's output for the review workflow)."""
+    events = runtime_response.get("events", [])
+    for event in reversed(events):
+        text = _event_text(event)
+        if text.strip():
+            return text
+    return "(Agent responded but no parseable text was found.)"
 
 
 def extract_briefing(runtime_response: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Best-effort extraction of the PlanningBriefing from an Agent Runtime response.
+    """Best-effort extraction of a structured (JSON) agent output from the
+    streamed events — e.g. an AgentPositionsOutput or PlanningBriefing.
 
-    Agent Runtime wraps the agent output; the exact field path can vary by version,
-    so we walk the common locations. Returns None if nothing shaped like a briefing
-    is found — callers should treat that as 'fall back to synthetic state'.
+    Scans events newest-first since the final agent's output is the most
+    complete. Returns None if nothing JSON-shaped is found — callers should
+    treat that as 'fall back to synthetic state'.
     """
-    # Common wrap locations, in order of preference.
-    for path in (
-        ("output",),
-        ("response", "output"),
-        ("result", "output"),
-        ("predictions", 0, "output"),
-    ):
-        node: Any = runtime_response
-        try:
-            for key in path:
-                node = node[key]
-        except (KeyError, IndexError, TypeError):
+    events = runtime_response.get("events", [])
+    for event in reversed(events):
+        text = _event_text(event)
+        if not text.strip():
             continue
-        if isinstance(node, str):
-            # The workflow yields briefing.model_dump_json() — try to parse.
-            try:
-                return json.loads(node)
-            except json.JSONDecodeError:
-                continue
-        if isinstance(node, dict) and (
-            "reviews" in node or "decision_required" in node
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict) and (
+            "reviews" in parsed or "decision_required" in parsed or "positions" in parsed
         ):
-            return node
+            return parsed
     return None
