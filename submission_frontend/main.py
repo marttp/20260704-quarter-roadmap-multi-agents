@@ -15,6 +15,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -25,6 +26,12 @@ from submission_frontend.agent_runtime import (
     call_agent_runtime,
     extract_briefing,
 )
+
+# Load .env before reading any AGENT_RUNTIME_ID / GOOGLE_CLOUD_* env vars below.
+# Without this, `make dashboard` silently ignores .env and falls back to
+# whatever (possibly stale) values are exported in the shell — the cause of
+# 403s against an old reasoningEngines id/region after a redeploy.
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 SPA_DIR = BASE_DIR / "static" / "spa"  # Vite build output (frontend/)
