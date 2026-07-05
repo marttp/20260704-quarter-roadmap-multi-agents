@@ -69,9 +69,21 @@ def load_planning_state_node(ctx: Context, node_input: Any):
     """Read the synthetic dataset, redact PII, format the agent context, stash in state.
 
     Security: `redact_confidential` runs HERE, before any downstream LlmAgent sees the text.
+
+    node_input may carry the human's CURRENT board state as a JSON string —
+    {"already_committed": [item_id, ...], "committed_hours": int} — sent by the
+    dashboard's "Run live agent review" button. When present, items already
+    committed are excluded from what the agents reason about (they're decided;
+    re-litigating them isn't useful), and the capacity envelope reflects the
+    hours already spent, so the agents debate the REMAINING budget against the
+    REMAINING items, not the original static scenario every time. Plain-text
+    prompts (e.g. from `agents-cli run`) fall back to the full original review.
     """
+    already_committed, committed_hours = _parse_review_override(node_input)
     state = load_planning_state()
-    context_json = redact_confidential(_format_planning_context(state))
+    context_json = redact_confidential(
+        _format_planning_context(state, already_committed, committed_hours)
+    )
     # Stash both the slim agent context (string) and the raw state (dict) for downstream nodes.
     yield Event(
         output=context_json,
@@ -81,23 +93,84 @@ def load_planning_state_node(ctx: Context, node_input: Any):
     )
 
 
-def _format_planning_context(state: Dict[str, Any]) -> str:
+def _extract_message_text(node_input: Any) -> str:
+    """Get the plain text out of a node's input, which ADK passes as a
+    genai Content object (parts=[Part(text=...)], role='user'), NOT a plain
+    string. str(content) would serialize the Python repr instead of the actual
+    message text — every node that needs the real text (classify_input_node,
+    _parse_review_override) must go through this, not a bare str() cast.
+    """
+    if node_input is None:
+        return ""
+    if isinstance(node_input, str):
+        return node_input
+    parts = getattr(node_input, "parts", None)
+    if parts:
+        texts = [getattr(p, "text", None) for p in parts]
+        return "".join(t for t in texts if t)
+    return str(node_input)
+
+
+def _parse_review_override(node_input: Any) -> tuple[List[str], int]:
+    """Parse an optional {"already_committed": [...], "committed_hours": N} JSON
+    message into (already_committed_ids, committed_hours). Returns ([], 0) for
+    plain-text prompts or anything that doesn't parse as that shape.
+    """
+    text = _extract_message_text(node_input)
+    if not text:
+        return [], 0
+    try:
+        parsed = json.loads(text)
+    except (json.JSONDecodeError, TypeError):
+        return [], 0
+    if not isinstance(parsed, dict):
+        return [], 0
+    already_committed = parsed.get("already_committed") or []
+    committed_hours = parsed.get("committed_hours") or 0
+    if not isinstance(already_committed, list):
+        return [], 0
+    return [str(i) for i in already_committed], int(committed_hours)
+
+
+def _format_planning_context(
+    state: Dict[str, Any],
+    already_committed: List[str] | None = None,
+    committed_hours: int = 0,
+) -> str:
     """Build a compact JSON string the LlmAgents read as their 'user message'.
 
-    Only the decision_required items are included — agents don't see auto-prioritized items,
-    keeping token cost down and focus narrow. Item positions/reasons are stripped so agents
-    form their own rather than parroting the synthetic ones.
+    Only the decision_required items still open are included — agents don't see
+    auto-prioritized items or items the human already committed, keeping token
+    cost down and focus on what actually needs a decision. Item positions/reasons
+    are stripped so agents form their own rather than parroting the synthetic ones.
     """
+    already_committed = already_committed or []
     planning = state["planning"]
     decision_ids = set(planning.get("decision_required", []))
+    remaining_ids = decision_ids - set(already_committed)
     all_items = planning.get("backlog_from_past_quarters", []) + planning.get(
         "proposed_for_q3", []
     )
+
+    envelope = dict(planning.get("capacity_envelope") or {})
+    if already_committed:
+        budget = envelope.get("initiative_capacity_hours_q3", 2400)
+        remaining_budget = budget - committed_hours
+        envelope["remaining_budget_hours"] = remaining_budget
+        envelope["_note"] = (
+            f"The human has ALREADY committed {committed_hours}h across "
+            f"{len(already_committed)} item(s) ({', '.join(already_committed)}). "
+            f"Only {remaining_budget}h of the {budget}h budget remains for the "
+            "items below — reason about fit against THIS remaining budget, not "
+            "the original total."
+        )
+
     payload = {
         "quarter": planning.get("quarter"),
-        "capacity_envelope": planning.get("capacity_envelope"),
-        "decision_required": planning.get("decision_required", []),
-        "items": [_slim_item(it) for it in all_items if it.get("id") in decision_ids],
+        "capacity_envelope": envelope,
+        "already_committed": already_committed,
+        "decision_required": sorted(remaining_ids),
+        "items": [_slim_item(it) for it in all_items if it.get("id") in remaining_ids],
         "history_averages": state["history"]["utilization"]["quarter_averages"],
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)
@@ -131,12 +204,17 @@ planning_agent = LlmAgent(
         "Your mandate: protect sustainable utilization (target <=100% of weekly capacity).\n\n"
         "You receive the Q3 planning state as JSON: capacity envelope, decision_required items, "
         "their incoming_state, feedback, and Q1/Q2 utilization history.\n\n"
+        "If the envelope includes `already_committed` and `remaining_budget_hours` (the human "
+        "has already locked in some items on the dashboard), reason against the REMAINING budget "
+        "and the REMAINING items only — do not re-litigate what's already committed. If "
+        "decision_required is empty, return an empty positions list; do not invent items.\n\n"
         "For EACH decision_required item, emit one AgentPosition. Position options: "
         "prioritize, deprioritize, unblock, cut, defer_partial, auto_keep, auto_prioritize.\n"
         "Your reason MUST cite one of:\n"
         "  - the Q1/Q2 utilization history (e.g. 'Ingestion peaked at 122% in Q1 week 8'),\n"
         "  - the item's incoming_state (e.g. 'blocked on Design'), or\n"
-        "  - the capacity envelope (e.g. 'over budget by 260h').\n"
+        "  - the capacity envelope, using the remaining budget if present (e.g. 'only 340h "
+        "of the remaining budget is left').\n"
         "One sentence per reason. No preamble."
     ),
     output_key="planning_positions",
@@ -166,8 +244,11 @@ stakeholder_agent = LlmAgent(
     instruction=(
         "You are the PRODUCT STAKEHOLDER AGENT — the 'other department' in this review.\n"
         "Your mandate: maximize customer value and protect revenue commitments.\n\n"
-        "You receive the planning state AND the Eng Planning Agent's positions. For EACH "
-        "decision_required item, emit one AgentPosition. You may AGREE or DISAGREE with Eng; "
+        "You receive the planning state AND the Eng Planning Agent's positions. If the envelope "
+        "includes `already_committed` and `remaining_budget_hours`, reason against the REMAINING "
+        "budget and REMAINING items only — the human already locked in the committed ones. If "
+        "decision_required is empty, return an empty positions list; do not invent items.\n\n"
+        "For EACH decision_required item, emit one AgentPosition. You may AGREE or DISAGREE with Eng; "
         "when you disagree, cite customer feedback, market signals, or revenue risk from the "
         "planning_context.\n"
         "Position options: prioritize, deprioritize, unblock, cut, defer_partial, auto_keep, "
@@ -287,7 +368,7 @@ def classify_input_node(ctx: Context, node_input: Any):
     Heuristic: if the message reads like a question (has a '?' or common
     question words), treat it as a chat; otherwise default to the Q3 review.
     """
-    raw = str(node_input or "")
+    raw = _extract_message_text(node_input)
     lowered = raw.lower()
     is_chat = any(
         kw in lowered
@@ -356,6 +437,12 @@ advisor_agent = LlmAgent(
         "utilization history, and the Q3 roadmap.\n\n"
         "Use your tools to read the org structure, utilization history, and Q3 initiatives data "
         "BEFORE answering. Ground every answer in the data; if the data doesn't cover something, say so.\n\n"
+        "The question may start with '[Context: the human has already committed N item(s) to Q3 "
+        "(ids), totaling Xh so far...]'. When present, treat those items as DECIDED — never suggest "
+        "cutting, deprioritizing, or reconsidering them, and use read_initiatives_tool's "
+        "capacity_envelope (total budget) minus the stated committed hours as the REMAINING budget "
+        "for any capacity question. Answer strictly against that remaining budget, not the original "
+        "total.\n\n"
         "For 'who can I move' or 'who can work on X' questions, follow this order: "
         "(1) if the question names or implies a specific backlog/initiative item, look it up via "
         "read_initiatives_tool first and note its owner_team — prefer recommending someone FROM that team "
