@@ -45,4 +45,10 @@ COPY --from=frontend /repo/submission_frontend/static/spa/ ./submission_frontend
 EXPOSE 8080
 
 # Cloud Run sets PORT; FastAPI must listen on 0.0.0.0.
-CMD ["sh", "-c", "uv run uvicorn submission_frontend.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+# APP_MODULE lets one image serve two different entrypoints:
+#   - Agent Runtime (agents-cli deploy) leaves APP_MODULE unset -> serves the
+#     ADK agent app (app.fast_api_app:app), which has the /api/reasoning_engine
+#     + A2A routes Agent Runtime's :query/:streamQuery calls need.
+#   - Cloud Run (make deploy-cloud-run) sets APP_MODULE=submission_frontend.main:app
+#     to serve the dashboard instead.
+CMD ["sh", "-c", "uv run uvicorn ${APP_MODULE:-app.fast_api_app:app} --host 0.0.0.0 --port ${PORT:-8080}"]
