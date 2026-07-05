@@ -22,16 +22,26 @@ import requests
 def _runtime_query_url() -> str:
     """Build the Agent Runtime :query URL from env vars."""
     project = os.environ.get("GOOGLE_CLOUD_PROJECT")
-    location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-west1")
     runtime_id = os.environ.get("AGENT_RUNTIME_ID")
     if not (project and runtime_id):
         raise RuntimeError(
             "AGENT_RUNTIME_ID and GOOGLE_CLOUD_PROJECT must be set to call Agent Runtime. "
             "Run `agents-cli deploy` and copy the runtime id from deployment_metadata.json."
         )
+    
+    # If AGENT_RUNTIME_ID is a full resource name path, parse project, location, and engine ID
+    if "projects/" in runtime_id:
+        parts = runtime_id.split("/")
+        project = parts[1]
+        location = parts[3]
+        engine_id = parts[5]
+    else:
+        location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-west1")
+        engine_id = runtime_id
+
     return (
         f"https://{location}-aiplatform.googleapis.com/v1/projects/{project}/"
-        f"locations/{location}/agentRuntimeEnvironments/{runtime_id}:query"
+        f"locations/{location}/reasoningEngines/{engine_id}:query"
     )
 
 
