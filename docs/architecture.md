@@ -37,7 +37,7 @@ flowchart LR
     WF -- "first emit<br/>(Eng stance)" --> PA
     WF -- "MCP tools<br/>read_planning_state" --> MCP
     MCP -- "loads" --> DATA
-    WF -- "redact_confidential<br/>(PII scrub before LLM)" -.-> DATA
+    WF -. "redact_confidential<br/>(PII scrub before LLM)" .-> DATA
 ```
 
 ## 2. Interaction sequence — one full decision
