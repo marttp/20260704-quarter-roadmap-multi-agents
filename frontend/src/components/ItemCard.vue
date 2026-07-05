@@ -3,23 +3,27 @@
 // button is clicked; the parent (App.vue) moves the card between columns.
 import type { PlanningItem } from '../types'
 
-const props = defineProps<{ item: PlanningItem }>()
+const props = defineProps<{ item: PlanningItem; flash?: boolean }>()
+
+type DecideAction = 'prioritize' | 'deprioritize' | 'unblock' | 'cut' | 'defer_partial'
 
 const emit = defineEmits<{
-  (e: 'decide', payload: { itemId: string; action: 'prioritize' | 'deprioritize' | 'unblock' | 'cut' }): void
+  (e: 'decide', payload: { itemId: string; action: DecideAction }): void
 }>()
 
-function primaryAction(): 'prioritize' | 'deprioritize' | 'unblock' | 'cut' {
+function primaryAction(): DecideAction {
   return props.item.decision_type === 'unblock_vs_cut' ? 'unblock' : 'prioritize'
 }
 
-function secondaryAction(): 'prioritize' | 'deprioritize' | 'unblock' | 'cut' {
-  return props.item.decision_type === 'unblock_vs_cut' ? 'cut' : 'deprioritize'
+function secondaryAction(): DecideAction {
+  if (props.item.decision_type === 'unblock_vs_cut') return 'cut'
+  if (props.item.decision_type === 'prioritize_vs_defer_partial') return 'defer_partial'
+  return 'deprioritize'
 }
 </script>
 
 <template>
-  <div class="card" :class="{ decision: item.decision_required }" :data-item-id="item.id">
+  <div class="card" :class="{ decision: item.decision_required, flash }" :data-item-id="item.id">
     <div class="name">{{ item.name }}</div>
 
     <div class="meta-row">
@@ -28,6 +32,7 @@ function secondaryAction(): 'prioritize' | 'deprioritize' | 'unblock' | 'cut' {
         v-if="item.decision_type && item.decision_type !== 'auto_keep' && item.decision_type !== 'auto_prioritize'"
         class="badge decision"
       >{{ item.decision_type }}</span>
+      <span v-else-if="!item.decision_required" class="badge auto">✓ agreed — pre-committed</span>
       <span v-if="item.owner_team" class="badge team">{{ item.owner_team }}</span>
       <span v-if="item.effort_hours_remaining" class="badge team">{{ item.effort_hours_remaining }}h left</span>
     </div>
