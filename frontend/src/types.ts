@@ -43,6 +43,13 @@ export interface PlanningItem {
   owner_team: string
   customer_champion?: string | null
   effort_hours_remaining: number
+  // Present only on 'prioritize_vs_defer_partial' items — the reduced hour count
+  // committed when the human picks "Defer partial" instead of the full ask.
+  partial_hours?: number
+  // Client-side bookkeeping only (not from the API): the original full hours,
+  // stashed here when a partial commit overwrites `effort_hours_remaining`, so a
+  // later "undo" can restore it.
+  full_hours_remaining?: number
   feedback: Feedback[]
   decision_type: DecisionType
   decision_required: boolean
